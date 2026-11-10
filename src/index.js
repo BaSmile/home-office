@@ -50,19 +50,33 @@ export default {
       if (['home', 'gym', 'kenitra', 'office'].includes(params.state)) {
         record = { state: params.state, manual: true };
       } else {
-        const c = parseCoords(params);
+        let c = parseCoords(params);
         if (!c) return json({ error: 'missing or invalid lat/lon' }, 400);
+        let acc = Number(params.acc ?? params.accuracy) || null;
+        const MAX_PIN = 150;  // a pin must be precise to the street
+        const MAX_FIX = 500;  // coarser readings (e.g. Chrome "approximate" location, ±2 km) are ignored
+        if (isOwnTracks) await env.KV.put('lastfix', JSON.stringify({ ...c, acc, at: new Date().toISOString() }));
+
         const setPlace = params.setplace || ((params.sethome === true || params.sethome === 'true') ? 'home' : null);
         if (setPlace === 'home' || setPlace === 'gym') {
-          await env.KV.put(setPlace, JSON.stringify({ lat: c.lat, lon: c.lon, savedAt: new Date().toISOString() }));
+          // Use the most precise of: this page's GPS reading, or OwnTracks' last fix (if under 20 min old).
+          const last = JSON.parse((await env.KV.get('lastfix')) || 'null');
+          const cands = [{ ...c, acc: acc ?? 9999, from: 'page' }];
+          if (last && last.acc != null && Date.now() - new Date(last.at) < 20 * 60e3) cands.push({ lat: last.lat, lon: last.lon, acc: last.acc, from: 'owntracks' });
+          const best = cands.filter(x => x.acc <= MAX_PIN).sort((a, b) => a.acc - b.acc)[0];
+          if (!best) return json({ error: 'imprecise', acc: Math.round(acc ?? 0) }, 422);
+          await env.KV.put(setPlace, JSON.stringify({ lat: best.lat, lon: best.lon, acc: Math.round(best.acc), from: best.from, savedAt: new Date().toISOString() }));
+          c = { lat: best.lat, lon: best.lon }; acc = best.acc;
+        } else if (acc != null && acc > MAX_FIX) {
+          return json({ error: 'imprecise', acc: Math.round(acc) }, 422);
         }
-        const homePt = JSON.parse((await env.KV.get('home')) || 'null') || undefined;
-        const gymPt = JSON.parse((await env.KV.get('gym')) || 'null') || undefined;
+        const homePt = await getPin(env, 'home');
+        const gymPt = await getPin(env, 'gym');
         record = decide(c.lat, c.lon, {
-          home: homePt, gym: gymPt, accM: params.acc ?? params.accuracy,
+          home: homePt, gym: gymPt, accM: acc,
           homeRadiusKm: Number(env.HOME_RADIUS_KM || 0.2), gymRadiusKm: Number(env.GYM_RADIUS_KM || 0.1), cityRadiusKm: Number(env.CITY_RADIUS_KM || 15),
         });
-        if (params.acc ?? params.accuracy) record.accM = Math.round(Number(params.acc ?? params.accuracy));
+        if (acc) record.accM = Math.round(acc);
       }
       record.updatedAt = new Date().toISOString();
       record.source = isOwnTracks ? 'owntracks' : (params.source || 'api');
@@ -86,8 +100,8 @@ export default {
     if (path === '/me') {
       if (!owner) return html(lockedPage('/me'), 401);
       const log = JSON.parse((await env.KV.get('log')) || '[]');
-      const home = JSON.parse((await env.KV.get('home')) || 'null');
-      const gym = JSON.parse((await env.KV.get('gym')) || 'null');
+      const home = await getPin(env, 'home');
+      const gym = await getPin(env, 'gym');
       return html(mePage(env, log, home, gym), 200, cookies);
     }
 
@@ -100,6 +114,12 @@ export default {
     return new Response('Not found', { status: 404 });
   },
 };
+
+// Saved places are only trusted if they were pinned with a precise reading (old imprecise pins are ignored).
+async function getPin(env, name) {
+  const p = JSON.parse((await env.KV.get(name)) || 'null');
+  return p && p.acc != null && p.acc <= 150 ? p : undefined;
+}
 
 async function getStatus(env) {
   const raw = await env.KV.get('status');
@@ -202,8 +222,8 @@ today();setInterval(()=>{w.textContent=ago(w.dataset.at);today();},20000);
 const ICON = { home: '🏠', gym: '💪', kenitra: '☕', office: '🏢' };
 
 function mePage(env, log = [], home = null, gym = null) {
-  const gymInfo = gym ? 'Salle enregistrée le ' + new Date(gym.savedAt).toLocaleDateString('fr-MA') + ' · rayon ' + Math.round(Number(env.GYM_RADIUS_KM || 0.1) * 1000) + ' m' : 'Salle actuelle : point Legends of Fighters (Google Maps)';
-  const homeInfo = home ? 'Maison enregistrée le ' + new Date(home.savedAt).toLocaleDateString('fr-MA') + ' · rayon ' + Math.round(Number(env.HOME_RADIUS_KM || 0.2) * 1000) + ' m' : 'Maison actuelle : point Wafa Immobilier (Google Maps)';
+  const gymInfo = gym ? 'Salle enregistrée le ' + new Date(gym.savedAt).toLocaleDateString('fr-MA') + ' (±' + gym.acc + ' m) · rayon ' + Math.round(Number(env.GYM_RADIUS_KM || 0.1) * 1000) + ' m' : 'Salle actuelle : point Legends of Fighters (Google Maps)';
+  const homeInfo = home ? 'Maison enregistrée le ' + new Date(home.savedAt).toLocaleDateString('fr-MA') + ' (±' + home.acc + ' m) · rayon ' + Math.round(Number(env.HOME_RADIUS_KM || 0.2) * 1000) + ' m' : 'Maison actuelle : point Wafa Immobilier (Google Maps)';
   const SRC = { owntracks: 'OwnTracks', fused: 'OwnTracks', gps: 'OwnTracks', network: 'OwnTracks', 'me-page': 'cette page', manual: 'manuel', api: 'API' };
   const isOT = l => SRC[l.source] === 'OwnTracks';
   const rows = log.map(l => `<tr data-at="${l.at}"><td class="ago"></td><td>${ICON[l.state] || '❔'}</td>
@@ -231,7 +251,7 @@ const say=t=>log.textContent=t;
 function ago(iso){const m=Math.round((Date.now()-new Date(iso))/60000);return m<1?"à l'instant":m<60?m+' min':m<1440?Math.floor(m/60)+' h '+(m%60)+' min':Math.floor(m/1440)+' j';}
 document.querySelectorAll('tr[data-at]').forEach(r=>{const d=new Date(r.dataset.at);r.querySelector('.ago').textContent=ago(r.dataset.at)+' · '+d.toLocaleTimeString('fr-MA',{hour:'2-digit',minute:'2-digit',timeZone:'Africa/Casablanca'});});
 async function send(body){const r=await fetch('/api/location',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
- const j=await r.json();if(!r.ok){say('Erreur : '+(j.error||r.status));return;}say('Envoyé ✔');setTimeout(()=>location.reload(),600);}
+ const j=await r.json();if(!r.ok){if(j.error==='imprecise'){say('Position trop imprécise (±'+j.acc+' m). Ouvre OwnTracks et appuie sur la flèche « publier », puis réessaie ici. Ou active « Position exacte » pour Chrome : Paramètres → Applis → Chrome → Autorisations → Position.');}else say('Erreur : '+(j.error||r.status));return;}say('Envoyé ✔');setTimeout(()=>location.reload(),600);}
 go.onclick=()=>{if(!navigator.geolocation){say('GPS indisponible : utilise les boutons.');return;}say('Recherche de la position…');
  navigator.geolocation.getCurrentPosition(p=>send({lat:p.coords.latitude,lon:p.coords.longitude,source:'me-page'}),
   err=>say('GPS refusé ou indisponible ('+err.message+'). Utilise les boutons.'),{enableHighAccuracy:false,timeout:20000,maximumAge:120000});};
