@@ -1,25 +1,46 @@
 // Animated chibi scenes (inline SVG + CSS). Face features are in FACE so they can be tuned to Bassim's photo.
 
 export const FACE = {
-  skin: '#e2ae86',
-  hair: '#2a1c15',
+  skin: '#eec3a0',
+  shade: '#dca784',
+  hair: '#1f1611',
+  curl: '#3a2a20',
+  beard: '#3b2a1f',
+  glasses: '#6b6e73',
   cheeks: '#ff8f8f',
   line: '#4a2616',
 };
+
+// Curly volume on top, shorter sides (from Bassim's photo).
+const CURLS = [
+  [74, 82, 11], [80, 68, 13], [92, 56, 14], [108, 50, 15], [124, 47, 15], [140, 49, 15], [154, 56, 14],
+  [164, 68, 12], [168, 82, 10], [100, 44, 10], [118, 40, 11], [136, 41, 11], [150, 46, 9],
+];
+const CURL_LINES = [[90, 56], [108, 46], [126, 42], [144, 46], [158, 60], [82, 70], [116, 58], [136, 58], [100, 62], [164, 76]];
 
 function head(mouth) {
   const F = FACE;
   return `
   <g class="head">
-    <circle cx="62" cy="108" r="10" fill="${F.skin}"/><circle cx="178" cy="108" r="10" fill="${F.skin}"/>
-    <ellipse cx="120" cy="104" rx="58" ry="55" fill="${F.skin}"/>
-    <path d="M60 106 Q56 44 120 44 Q186 44 180 106 Q176 80 156 70 Q138 84 112 72 Q96 82 78 74 Q66 84 60 106Z" fill="${F.hair}"/>
-    <path d="M90 94 l14 -3 M136 91 l14 3" stroke="${F.hair}" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="62" cy="110" r="10" fill="${F.skin}"/><circle cx="178" cy="110" r="10" fill="${F.skin}"/>
+    <circle cx="62" cy="110" r="5" fill="${F.shade}"/><circle cx="178" cy="110" r="5" fill="${F.shade}"/>
+    <ellipse cx="120" cy="106" rx="58" ry="56" fill="${F.skin}"/>
+    <path d="M62 112 Q58 58 120 54 Q182 58 178 112 Q174 88 160 80 Q140 74 120 76 Q98 74 80 80 Q66 88 62 112Z" fill="${F.hair}"/>
+    <g fill="${F.hair}">${CURLS.map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}"/>`).join('')}</g>
+    <g fill="none" stroke="${F.curl}" stroke-width="2.4" stroke-linecap="round">${CURL_LINES.map(([x, y]) => `<path d="M${x - 5} ${y + 2} q5 -7 9 0 q-2 5 -5 3"/>`).join('')}</g>
+    <path d="M67 116 Q72 154 120 164 Q168 154 173 116 L169 118 Q164 148 134 154 Q127 150 120 151 Q113 150 106 154 Q76 148 71 118Z" fill="${F.beard}" opacity=".55"/>
+    <path d="M108 150 Q120 147 132 150 Q130 162 120 164 Q110 162 108 150Z" fill="${F.beard}" opacity=".6"/>
+    <path d="M104 131 Q112 125 120 128 Q128 125 136 131" fill="none" stroke="${F.beard}" stroke-width="3" stroke-linecap="round" opacity=".4"/>
+    <path d="M85 96 Q96 92 109 95 M131 95 Q144 92 155 96" stroke="${F.hair}" stroke-width="5.5" stroke-linecap="round" fill="none"/>
     <g class="eyes">
-      <ellipse cx="99" cy="112" rx="7" ry="9" fill="#1d1d1d"/><ellipse cx="141" cy="112" rx="7" ry="9" fill="#1d1d1d"/>
-      <circle cx="101.5" cy="108.5" r="2.6" fill="#fff"/><circle cx="143.5" cy="108.5" r="2.6" fill="#fff"/>
+      <ellipse cx="99" cy="112" rx="6" ry="7.5" fill="#2b1a12"/><ellipse cx="141" cy="112" rx="6" ry="7.5" fill="#2b1a12"/>
+      <circle cx="101" cy="109.5" r="2.2" fill="#fff"/><circle cx="143" cy="109.5" r="2.2" fill="#fff"/>
     </g>
-    <ellipse cx="85" cy="128" rx="9" ry="5" fill="${F.cheeks}" opacity=".45"/><ellipse cx="155" cy="128" rx="9" ry="5" fill="${F.cheeks}" opacity=".45"/>
+    <ellipse cx="82" cy="133" rx="8" ry="4.5" fill="${F.cheeks}" opacity=".35"/><ellipse cx="158" cy="133" rx="8" ry="4.5" fill="${F.cheeks}" opacity=".35"/>
+    <g fill="#fff" fill-opacity=".14" stroke="${F.glasses}" stroke-width="2.6">
+      <circle cx="99" cy="113" r="17"/><circle cx="141" cy="113" r="17"/>
+    </g>
+    <path d="M116 109 Q120 105 124 109 M82 110 L65 106 M158 110 L175 106" fill="none" stroke="${F.glasses}" stroke-width="2.6" stroke-linecap="round"/>
     ${mouth}
   </g>`;
 }
@@ -27,9 +48,9 @@ function head(mouth) {
 const steam = (x, y) => `<g class="steam">
   <path d="M${x} ${y} q-5 -8 0 -16 q5 -8 0 -16" /><path class="d2" d="M${x + 9} ${y} q-5 -8 0 -16 q5 -8 0 -16" /></g>`;
 
-const SMILE = `<path d="M108 131 Q120 145 132 131" fill="#c0392b" stroke="${FACE.line}" stroke-width="3" stroke-linejoin="round"/>`;
-const FOCUS = `<path d="M112 135 Q120 139 128 135" fill="none" stroke="${FACE.line}" stroke-width="3" stroke-linecap="round"/>`;
-const HMM = `<path d="M113 136 h14" stroke="${FACE.line}" stroke-width="3" stroke-linecap="round"/>`;
+const SMILE = `<path d="M108 136 Q120 147 132 136 Q120 140 108 136Z" fill="#b8564c" stroke="${FACE.line}" stroke-width="2.6" stroke-linejoin="round"/>`;
+const FOCUS = `<path d="M111 137 Q120 142 129 137" fill="none" stroke="${FACE.line}" stroke-width="2.8" stroke-linecap="round"/>`;
+const HMM = `<path d="M113 139 h14" stroke="${FACE.line}" stroke-width="2.8" stroke-linecap="round"/>`;
 
 export const HOME_SVG = `
 <svg class="chibi s-home" viewBox="0 0 240 240" aria-hidden="true">
@@ -38,11 +59,13 @@ export const HOME_SVG = `
   <g class="smoke"><circle cx="169" cy="58" r="6"/><circle class="d2" cx="169" cy="58" r="5"/></g>
   <ellipse cx="120" cy="232" rx="72" ry="7" fill="#000" opacity=".07"/>
   <g class="bob">
-    <path d="M66 236 Q66 160 120 160 Q174 160 174 236Z" fill="#f4a259"/>
-    <path d="M104 162 L120 182 L136 162" fill="none" stroke="#e08a3c" stroke-width="4" stroke-linecap="round"/>
-    <g class="wave"><path d="M164 186 Q190 168 194 138" stroke="#f4a259" stroke-width="17" stroke-linecap="round" fill="none"/>
+    <path d="M66 236 Q66 162 120 162 Q174 162 174 236Z" fill="#fdfdfd" stroke="#d7dcd6" stroke-width="2"/>
+    <path d="M84 196 l8 6 l8 -6 l8 6 l8 -6 l8 6 l8 -6 l8 6 l8 -6 M82 214 l8 6 l8 -6 l8 6 l8 -6 l8 6 l8 -6 l8 6 l8 -6 l8 6" fill="none" stroke="#e6e9e5" stroke-width="2"/>
+    <path d="M100 163 Q120 180 140 163" fill="none" stroke="#d7dcd6" stroke-width="3"/>
+    <g class="wave"><path d="M164 188 Q186 172 192 150" stroke="#fdfdfd" stroke-width="17" stroke-linecap="round" fill="none"/>
+      <path d="M192 150 L194 140" stroke="${FACE.skin}" stroke-width="12" stroke-linecap="round"/>
       <circle cx="195" cy="132" r="11" fill="${FACE.skin}"/></g>
-    <g><rect x="52" y="182" width="30" height="32" rx="6" fill="#fff"/><path d="M82 190 q10 0 10 9 q0 9 -10 9" fill="none" stroke="#fff" stroke-width="5"/>
+    <g><rect x="52" y="182" width="30" height="32" rx="6" fill="#e07a5f"/><path d="M82 190 q10 0 10 9 q0 9 -10 9" fill="none" stroke="#e07a5f" stroke-width="5"/>
       <rect x="52" y="182" width="30" height="7" rx="3" fill="#8d5a3b"/><circle cx="80" cy="206" r="10" fill="${FACE.skin}"/>${steam(62, 176)}</g>
     ${head(SMILE)}
   </g>
@@ -57,14 +80,14 @@ export const OFFICE_SVG = `
   <g fill="#ffe082" class="lights"><rect x="30" y="84" width="7" height="7"/><rect x="42" y="104" width="7" height="7"/>
     <rect x="70" y="58" width="7" height="7"/><rect x="158" y="76" width="7" height="7"/><rect x="198" y="104" width="7" height="7"/></g>
   <g class="bob">
-    <path d="M66 236 Q66 160 120 160 Q174 160 174 236Z" fill="#5b8def"/>
-    <path d="M106 160 L120 176 L134 160" fill="#fff"/><path d="M116 172 h8 l3 30 -7 8 -7 -8z" fill="#c0392b"/>
+    <path d="M66 236 Q66 162 120 162 Q174 162 174 236Z" fill="#5b8def"/>
+    <path d="M104 162 L120 182 L136 162" fill="#fff"/>
     ${head(FOCUS)}
   </g>
-  <rect x="52" y="184" width="136" height="6" rx="3" fill="#90a4ae"/>
-  <path d="M64 186 L76 128 H164 L176 186Z" fill="#cfd8dc"/><circle cx="120" cy="156" r="7" fill="#fff" opacity=".8"/>
-  <circle class="t1" cx="70" cy="184" r="10" fill="${FACE.skin}"/><circle class="t2" cx="170" cy="184" r="10" fill="${FACE.skin}"/>
-  <g><rect x="196" y="160" width="22" height="26" rx="5" fill="#fff"/><path d="M218 166 q8 0 8 7 q0 7 -8 7" fill="none" stroke="#fff" stroke-width="4"/>${steam(201, 154)}</g>
+  <rect x="50" y="198" width="140" height="6" rx="3" fill="#90a4ae"/>
+  <path d="M62 200 L72 158 H168 L178 200Z" fill="#cfd8dc"/><circle cx="120" cy="180" r="7" fill="#fff" opacity=".8"/>
+  <circle class="t1" cx="70" cy="198" r="10" fill="${FACE.skin}"/><circle class="t2" cx="170" cy="198" r="10" fill="${FACE.skin}"/>
+  <g><rect x="196" y="172" width="22" height="26" rx="5" fill="#fff"/><path d="M218 178 q8 0 8 7 q0 7 -8 7" fill="none" stroke="#fff" stroke-width="4"/>${steam(201, 166)}</g>
   <text class="code" x="186" y="120" font-family="monospace" font-weight="700" font-size="18" fill="#0d47a1">&lt;/&gt;</text>
   <text class="code c2" x="22" y="140" font-family="monospace" font-weight="700" font-size="16" fill="#0d47a1">{ }</text>
 </svg>`;
@@ -100,5 +123,5 @@ body.home .s-home,body.office .s-office,body.unknown .s-unknown{display:block}
 // App icon: chibi head on a soft green square (safe-zone friendly for Android "maskable" icons).
 export const ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="512" height="512">
   <rect width="240" height="240" fill="#a5d6a7"/>
-  <g transform="translate(-18 3) scale(1.15)">${head(SMILE)}</g>
+  <g transform="translate(-18 -6) scale(1.15)">${head(SMILE)}</g>
 </svg>`;
