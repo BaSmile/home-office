@@ -55,10 +55,14 @@ export default {
         record = decide(c.lat, c.lon, Number(env.RADIUS_KM || 15));
       }
       record.updatedAt = new Date().toISOString();
-      record.source = params.source || (isOwnTracks ? 'owntracks' : 'api');
+      record.source = isOwnTracks ? 'owntracks' : (params.source || 'api');
       await env.KV.put('status', JSON.stringify(record));
       const log = JSON.parse((await env.KV.get('log')) || '[]');
-      log.unshift({ at: record.updatedAt, state: record.state, source: record.source, km: record.distanceKm ?? null });
+      const entry = { at: record.updatedAt, state: record.state, source: record.source, km: record.distanceKm ?? null };
+      const prev = log[0];
+      // Same place, same source, less than 10 min ago: refresh that line instead of adding a new one.
+      if (prev && prev.state === entry.state && prev.source === entry.source && Date.now() - new Date(prev.at) < 10 * 60e3) log[0] = entry;
+      else log.unshift(entry);
       await env.KV.put('log', JSON.stringify(log.slice(0, 15)));
       return isOwnTracks ? json([]) : json(record);
     }
@@ -173,11 +177,13 @@ setInterval(()=>{w.textContent=ago(w.dataset.at)},20000);
 }
 
 function mePage(env, log = []) {
-  const SRC = { owntracks: 'OwnTracks', 'me-page': 'cette page', manual: 'manuel', api: 'API' };
+  const SRC = { owntracks: 'OwnTracks', fused: 'OwnTracks', gps: 'OwnTracks', network: 'OwnTracks', 'me-page': 'cette page', manual: 'manuel', api: 'API' };
+  const isOT = l => SRC[l.source] === 'OwnTracks';
   const rows = log.map(l => `<tr data-at="${l.at}"><td class="ago"></td><td>${l.state === 'home' ? '🏠' : '🏢'}</td>
     <td>${SRC[l.source] || l.source}</td><td>${l.km != null ? l.km + ' km' : '—'}</td></tr>`).join('');
   const last = log[0];
-  const ok = last && last.source === 'owntracks' && (Date.now() - new Date(last.at)) < 6 * 3600e3;
+  const lastOT = log.find(isOT);
+  const ok = lastOT && (Date.now() - new Date(lastOT.at)) < 6 * 3600e3;
   return shell('Ma position', `
 <div class="card">
   <div class="emoji" id="e">${last ? (last.state === 'home' ? '🏠' : '🏢') : '📍'}</div>
