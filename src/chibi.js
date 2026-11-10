@@ -188,7 +188,8 @@ body.home .s-home,body.gym .s-gym,body.kenitra .s-kenitra,body.office .s-office,
 .lift2{transform-box:view-box;transform-origin:162px 182px;animation:lift2 1.6s ease-in-out infinite .8s}
 @keyframes lift1{0%,100%{transform:rotate(0)}40%,55%{transform:rotate(95deg)}}@keyframes lift2{0%,100%{transform:rotate(0)}40%,55%{transform:rotate(-95deg)}}
 .sweat{animation:sweat 1.8s ease-in infinite}.s2{animation-delay:.9s}@keyframes sweat{0%{opacity:0;transform:translateY(-4px)}20%{opacity:1}100%{opacity:0;transform:translateY(22px)}}
-.days{display:none;margin-top:18px;font-size:16px;padding:10px 14px;border-radius:12px;background:rgba(255,255,255,.65)}body.office .days{display:inline-block}
+.days{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom));width:max-content;max-width:calc(100% - 24px);text-align:center;font-size:14px;padding:9px 14px;border-radius:999px;background:rgba(255,255,255,.75);box-shadow:0 2px 10px rgba(0,0,0,.06);color:#37474f}
+.days .today{margin-left:6px;font-weight:700}
 @media (prefers-reduced-motion:reduce){.chibi *{animation:none!important}}
 `;
 

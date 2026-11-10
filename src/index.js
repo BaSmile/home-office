@@ -164,6 +164,11 @@ button{font:inherit;font-size:17px;padding:14px 18px;border-radius:14px;border:0
 .row{display:flex;gap:10px}.row button{flex:1}.log{margin-top:18px;font-size:14px;opacity:.7;min-height:1.4em}
 ${css}</style></head><body>${body}</body></html>`;
 
+function officeDayNumbers(env) {
+  const map = { dimanche: 0, lundi: 1, mardi: 2, mercredi: 3, jeudi: 4, vendredi: 5, samedi: 6 };
+  return (env.OFFICE_DAYS || 'lundi, mercredi, jeudi').toLowerCase().split(/[\s,]+/).map(d => map[d]).filter(n => n != null);
+}
+
 function statusPage(env, s) {
   const name = env.OWNER_NAME || 'Bassim';
   const L = LABELS[s.state] || LABELS.unknown;
@@ -173,7 +178,7 @@ function statusPage(env, s) {
   <div class="who">${name} est</div>
   <div class="state" id="t">${L.text}</div>
   <div class="sub" id="s">${L.sub}</div>
-  <div class="days" id="days">📅 Au bureau le <b>${env.OFFICE_DAYS || 'lundi, mercredi, jeudi'}</b></div>
+  <div class="days" id="days">📅 Bureau : <b>${env.OFFICE_DAYS || 'lundi, mercredi, jeudi'}</b><span class="today" id="today"></span></div>
   <div class="when" id="w" data-at="${s.updatedAt || ''}"></div>
 </div>
 <script>
@@ -187,7 +192,10 @@ function paint(st,at){const x=L[st]||L.unknown;if(!L[st])st='unknown';document.b
  document.title='${name} est '+x.text;}
 paint(${JSON.stringify(s.state)},${JSON.stringify(s.updatedAt)});
 setInterval(async()=>{try{const r=await fetch('/api/status',{cache:'no-store'});if(r.ok){const j=await r.json();paint(j.state,j.updatedAt);}}catch{}},30000);
-setInterval(()=>{w.textContent=ago(w.dataset.at)},20000);
+const DAYS=${JSON.stringify(officeDayNumbers(env))};
+function today(){const d=new Date(new Date().toLocaleString('en-US',{timeZone:'Africa/Casablanca'})).getDay();
+ document.getElementById('today').textContent=DAYS.includes(d)?"· aujourd'hui ✅":"· pas aujourd'hui";}
+today();setInterval(()=>{w.textContent=ago(w.dataset.at);today();},20000);
 </script>`, L.bg, CHIBI_CSS);
 }
 
