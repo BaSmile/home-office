@@ -94,32 +94,39 @@ export const OFFICE_SVG = `
 
 export const KENITRA_SVG = `
 <svg class="chibi s-kenitra" viewBox="0 0 240 240" aria-hidden="true">
-  <rect x="117" y="20" width="6" height="160" fill="#8d6e63"/>
+  <g class="beans" fill="#8d6e63">
+    <g><ellipse cx="26" cy="96" rx="7" ry="10" transform="rotate(-30 26 96)"/><path d="M22 90 q6 6 2 13" stroke="#f3e5d8" stroke-width="1.6" fill="none"/></g>
+    <g class="b2"><ellipse cx="214" cy="112" rx="7" ry="10" transform="rotate(25 214 112)"/><path d="M211 105 q6 6 2 13" stroke="#f3e5d8" stroke-width="1.6" fill="none"/></g>
+    <g class="b3"><ellipse cx="40" cy="150" rx="6" ry="8.5" transform="rotate(15 40 150)"/><path d="M37 145 q5 5 1 11" stroke="#f3e5d8" stroke-width="1.5" fill="none"/></g>
+  </g>
+  <rect x="117" y="20" width="6" height="160" fill="#6d4c41"/>
   <g class="parasol">
     <clipPath id="parasol-clip"><path d="M28 40 Q120 -14 212 40Z"/></clipPath>
-    <g clip-path="url(#parasol-clip)"><rect x="0" y="0" width="240" height="44" fill="#fff"/>
-      <path d="M120 2 L4 44 H74Z M120 2 L120 44 H166Z M120 2 L212 44 H260Z" fill="#e53935"/></g>
-    <path d="M28 40 q11.5 10 23 0 q11.5 10 23 0 q11.5 10 23 0 q11.5 10 23 0 q11.5 10 23 0 q11.5 10 23 0 q11.5 10 23 0 q11.5 10 23 0" fill="#e53935"/>
+    <g clip-path="url(#parasol-clip)"><rect x="0" y="0" width="240" height="44" fill="#fff3e0"/>
+      <path d="M120 2 L4 44 H74Z M120 2 L120 44 H166Z M120 2 L212 44 H260Z" fill="#6d4c41"/></g>
+    <path d="M28 40 q11.5 10 23 0 q11.5 10 23 0 q11.5 10 23 0 q11.5 10 23 0 q11.5 10 23 0 q11.5 10 23 0 q11.5 10 23 0 q11.5 10 23 0" fill="#6d4c41"/>
   </g>
   <g class="bob">
-    <path d="M66 236 Q66 162 120 162 Q174 162 174 236Z" fill="#26a69a"/>
-    <path d="M100 163 Q120 180 140 163" fill="none" stroke="#1d8479" stroke-width="3"/>
+    <path d="M66 236 Q66 162 120 162 Q174 162 174 236Z" fill="#d7a86e"/>
+    <path d="M100 163 Q120 180 140 163" fill="none" stroke="#b9874d" stroke-width="3"/>
     ${head(SMILE)}
   </g>
-  <ellipse cx="120" cy="206" rx="86" ry="11" fill="#a1887f"/><rect x="34" y="206" width="172" height="8" fill="#8d6e63"/>
-  <rect x="112" y="214" width="16" height="26" fill="#6d4c41"/>
+  <ellipse cx="120" cy="206" rx="86" ry="11" fill="#5d4037"/><rect x="34" y="206" width="172" height="8" fill="#4e342e"/>
+  <rect x="112" y="214" width="16" height="26" fill="#3e2723"/>
   <g>
-    <ellipse cx="66" cy="190" rx="17" ry="14" fill="#cfd8dc"/><ellipse cx="66" cy="176" rx="9" ry="4" fill="#b0bec5"/>
-    <circle cx="66" cy="170" r="3.5" fill="#b0bec5"/><path d="M50 188 q-12 -2 -17 -14" fill="none" stroke="#cfd8dc" stroke-width="5" stroke-linecap="round"/>
-    <path d="M82 182 q10 2 6 14" fill="none" stroke="#b0bec5" stroke-width="4"/>
+    <ellipse cx="66" cy="200" rx="22" ry="5" fill="#fff"/>
+    <path d="M48 196 q4 -16 18 -16 q14 0 18 16 q-18 6 -36 0z" fill="#f0a94b"/>
+    <path d="M56 186 l3 10 M66 182 v13 M76 186 l-3 10" stroke="#c97d22" stroke-width="2" stroke-linecap="round"/>
     <circle cx="94" cy="202" r="10" fill="${FACE.skin}"/>
   </g>
   <g class="sip">
-    ${steam(166, 166)}
-    <path d="M158 174 h22 l-3 28 h-16z" fill="#d89a3a" stroke="#fff" stroke-width="2" stroke-opacity=".8"/>
-    <path d="M161 174 h16" stroke="#fff" stroke-width="2"/>
-    <ellipse cx="170" cy="173" rx="5" ry="3" fill="#43a047" transform="rotate(-25 170 173)"/>
-    <circle cx="183" cy="196" r="10" fill="${FACE.skin}"/>
+    ${steam(164, 168)}
+    <ellipse cx="170" cy="203" rx="18" ry="4.5" fill="#fff"/>
+    <path d="M156 178 h28 v14 q0 10 -14 10 q-14 0 -14 -10z" fill="#fff"/>
+    <path d="M184 183 q9 0 9 6 q0 6 -9 6" fill="none" stroke="#fff" stroke-width="4"/>
+    <ellipse cx="170" cy="178.5" rx="13" ry="2.8" fill="#6d4c41"/>
+    <path d="M166 178.5 q4 -2.5 8 0 q-4 2 -8 0z" fill="#f3e5d8"/>
+    <circle cx="186" cy="196" r="10" fill="${FACE.skin}"/>
   </g>
 </svg>`;
 
@@ -136,6 +143,7 @@ export const CHIBI_CSS = `
 .scene{width:min(300px,80vw);aspect-ratio:1;margin:0 auto}.chibi{width:100%;height:100%;display:none;overflow:visible}
 body.home .s-home,body.kenitra .s-kenitra,body.office .s-office,body.unknown .s-unknown{display:block}
 .parasol{transform-box:view-box;transform-origin:120px 40px;animation:parasol 4s ease-in-out infinite}@keyframes parasol{50%{transform:rotate(2deg)}}
+.beans g{animation:bean 3.6s ease-in-out infinite}.beans .b2{animation-delay:1.2s}.beans .b3{animation-delay:2.4s}@keyframes bean{50%{transform:translateY(-8px) rotate(12deg)}}
 .sip{animation:sip 4.5s ease-in-out infinite}@keyframes sip{0%,60%,100%{transform:translate(0,0)}72%,85%{transform:translate(-14px,-30px)}}
 .pop{animation:pop .55s cubic-bezier(.3,1.6,.5,1)}@keyframes pop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
 .bob{animation:bob 2.6s ease-in-out infinite}@keyframes bob{50%{transform:translateY(-4px)}}

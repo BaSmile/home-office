@@ -129,7 +129,7 @@ function html(body, status = 200, cookies = []) {
 const LABELS = {
   home: { emoji: '🏠', text: 'à la maison', sub: 'Kénitra', bg: '#e8f5e9', fg: '#1b5e20' },
   office: { emoji: '🏢', text: 'au bureau', sub: 'hors de Kénitra', bg: '#e3f2fd', fg: '#0d47a1' },
-  kenitra: { emoji: '🚗', text: 'à Kénitra', sub: 'en ville, pas à la maison', bg: '#fff8e1', fg: '#bf360c' },
+  kenitra: { emoji: '☕', text: 'à Kénitra', sub: 'en ville, pause café', bg: '#f3e5d8', fg: '#5d4037' },
   unknown: { emoji: '❔', text: 'introuvable', sub: 'pas encore de position', bg: '#f5f5f5', fg: '#424242' },
 };
 
@@ -177,7 +177,7 @@ setInterval(()=>{w.textContent=ago(w.dataset.at)},20000);
 </script>`, L.bg, CHIBI_CSS);
 }
 
-const ICON = { home: '🏠', kenitra: '🚗', office: '🏢' };
+const ICON = { home: '🏠', kenitra: '☕', office: '🏢' };
 
 function mePage(env, log = []) {
   const SRC = { owntracks: 'OwnTracks', fused: 'OwnTracks', gps: 'OwnTracks', network: 'OwnTracks', 'me-page': 'cette page', manual: 'manuel', api: 'API' };
@@ -194,7 +194,7 @@ function mePage(env, log = []) {
   <div class="badge ${ok ? 'ok' : 'warn'}">${ok ? '✅ OwnTracks fonctionne' : last ? '⚠️ Pas de nouvelle position OwnTracks depuis 6 h' : '⏳ Aucune position reçue'}</div>
   <table class="hist">${rows || '<tr><td>Rien pour l\'instant</td></tr>'}</table>
   <button class="primary" id="go">📍 Envoyer ma position GPS maintenant</button>
-  <div class="row"><button class="ghost" data-s="home">🏠 Maison</button><button class="ghost" data-s="kenitra">🚗 Kénitra</button><button class="ghost" data-s="office">🏢 Bureau</button></div>
+  <div class="row"><button class="ghost" data-s="home">🏠 Maison</button><button class="ghost" data-s="kenitra">☕ Kénitra</button><button class="ghost" data-s="office">🏢 Bureau</button></div>
   <div class="log" id="log"></div>
   <p class="when"><a href="/">Voir la page de Ouiame</a></p>
 </div>
