@@ -11,6 +11,6 @@ id = "__KV_ID__"
 OWNER_NAME = "Bassim"
 RADIUS_KM = "15"   # distance from Kenitra centre counted as "home"
 
-# Secrets (synced from GitHub secrets by the deploy workflow):
-#   OWNER_KEY  Bassim's key: /me page + location updates
-#   VIEW_KEY   Ouiame's key: status page (open once with ?k=..., remembered by cookie)
+# Optional secrets (synced from GitHub secrets by the deploy workflow). Not set = no key needed.
+#   OWNER_KEY  locks /me and location updates
+#   VIEW_KEY   locks the status page (open once with ?k=..., remembered by cookie)

@@ -82,7 +82,7 @@ function given(request, url) {
     || (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '') || null;
 }
 function isOwner(request, url, env) {
-  if (!env.OWNER_KEY) return false;
+  if (!env.OWNER_KEY) return true; // no key configured = open (only Bassim and Ouiame have the links)
   return given(request, url) === env.OWNER_KEY || readCookie(request, 'ho') === env.OWNER_KEY;
 }
 function isViewer(request, url, env) {
