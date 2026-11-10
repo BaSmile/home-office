@@ -1,6 +1,7 @@
 // Pure logic: where is Bassim? Kenitra = home, anywhere else = office.
 
-export const KENITRA = { lat: 34.2610, lon: -6.5802 };
+// Home point: Wafa Immobilier, Rue Omar Rifi, Kenitra (closest landmark to Bassim's home).
+export const KENITRA = { lat: 34.26243, lon: -6.57962 };
 
 export function distanceKm(a, b) {
   const R = 6371;
