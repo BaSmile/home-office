@@ -9,6 +9,18 @@ export default {
 
     if (path === '/health') return new Response('ok');
 
+    // Password form: typed once, remembered by the phone for a year (nothing in the URL).
+    if (path === '/login' && request.method === 'POST') {
+      const form = await request.formData();
+      const pw = String(form.get('pw') || '').trim();
+      const next = form.get('next') === '/me' ? '/me' : '/';
+      const h = new Headers({ location: next });
+      if (env.OWNER_KEY && pw === env.OWNER_KEY) h.append('set-cookie', cookie('ho', pw));
+      else if (env.VIEW_KEY && pw === env.VIEW_KEY) h.append('set-cookie', cookie('hv', pw));
+      else return html(lockedPage(next, true), 401);
+      return new Response(null, { status: 303, headers: h });
+    }
+
     const owner = isOwner(request, url, env);
     const viewer = owner || isViewer(request, url, env);
     const cookies = [];
@@ -54,12 +66,12 @@ export default {
     }
 
     if (path === '/me') {
-      if (!owner) return html(lockedPage(env), 401);
+      if (!owner) return html(lockedPage('/me'), 401);
       return html(mePage(env), 200, cookies);
     }
 
     if (path === '/') {
-      if (!viewer) return html(lockedPage(env), 401);
+      if (!viewer) return html(lockedPage('/'), 401);
       const s = await getStatus(env);
       return html(statusPage(env, s), 200, cookies);
     }
@@ -174,6 +186,13 @@ locate();setInterval(locate,5*60000);
 </script>`);
 }
 
-function lockedPage() {
-  return shell('🔒', `<div class="card"><div class="emoji">🔒</div><div class="sub" style="margin-top:16px">Ouvre le lien complet qu'on t'a envoyé.</div></div>`);
+function lockedPage(next = '/', wrong = false) {
+  return shell('🔒', `<form class="card" method="post" action="/login">
+  <div class="emoji">🔒</div>
+  <input type="hidden" name="next" value="${next}">
+  <input name="pw" type="password" placeholder="Mot de passe" autofocus autocomplete="current-password"
+    style="font:inherit;font-size:18px;padding:14px;border-radius:14px;border:1px solid #ddd;width:100%;margin-top:20px">
+  <button class="primary">Entrer</button>
+  <div class="log">${wrong ? 'Mot de passe incorrect' : ''}</div>
+</form>`);
 }
