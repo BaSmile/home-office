@@ -52,13 +52,18 @@ export default {
       } else {
         const c = parseCoords(params);
         if (!c) return json({ error: 'missing or invalid lat/lon' }, 400);
-        record = decide(c.lat, c.lon, Number(env.HOME_RADIUS_KM || 0.2), Number(env.CITY_RADIUS_KM || 15));
+        if (params.sethome === true || params.sethome === 'true' || params.sethome === '1') {
+          await env.KV.put('home', JSON.stringify({ lat: c.lat, lon: c.lon, savedAt: new Date().toISOString() }));
+        }
+        const homePt = JSON.parse((await env.KV.get('home')) || 'null') || undefined;
+        record = decide(c.lat, c.lon, Number(env.HOME_RADIUS_KM || 0.2), Number(env.CITY_RADIUS_KM || 15), homePt, params.acc ?? params.accuracy);
+        if (params.acc ?? params.accuracy) record.accM = Math.round(Number(params.acc ?? params.accuracy));
       }
       record.updatedAt = new Date().toISOString();
       record.source = isOwnTracks ? 'owntracks' : (params.source || 'api');
       await env.KV.put('status', JSON.stringify(record));
       const log = JSON.parse((await env.KV.get('log')) || '[]');
-      const entry = { at: record.updatedAt, state: record.state, source: record.source, km: record.distanceKm ?? null };
+      const entry = { at: record.updatedAt, state: record.state, source: record.source, km: record.distanceKm ?? null, acc: record.accM ?? null };
       const prev = log[0];
       // Same place, same source, less than 10 min ago: refresh that line instead of adding a new one.
       if (prev && prev.state === entry.state && prev.source === entry.source && Date.now() - new Date(prev.at) < 10 * 60e3) log[0] = entry;
@@ -76,7 +81,8 @@ export default {
     if (path === '/me') {
       if (!owner) return html(lockedPage('/me'), 401);
       const log = JSON.parse((await env.KV.get('log')) || '[]');
-      return html(mePage(env, log), 200, cookies);
+      const home = JSON.parse((await env.KV.get('home')) || 'null');
+      return html(mePage(env, log, home), 200, cookies);
     }
 
     if (path === '/') {
@@ -179,11 +185,12 @@ setInterval(()=>{w.textContent=ago(w.dataset.at)},20000);
 
 const ICON = { home: '🏠', kenitra: '☕', office: '🏢' };
 
-function mePage(env, log = []) {
+function mePage(env, log = [], home = null) {
+  const homeInfo = home ? 'Maison enregistrée le ' + new Date(home.savedAt).toLocaleDateString('fr-MA') + ' · rayon ' + Math.round(Number(env.HOME_RADIUS_KM || 0.2) * 1000) + ' m' : 'Maison actuelle : point Wafa Immobilier (Google Maps)';
   const SRC = { owntracks: 'OwnTracks', fused: 'OwnTracks', gps: 'OwnTracks', network: 'OwnTracks', 'me-page': 'cette page', manual: 'manuel', api: 'API' };
   const isOT = l => SRC[l.source] === 'OwnTracks';
   const rows = log.map(l => `<tr data-at="${l.at}"><td class="ago"></td><td>${ICON[l.state] || '❔'}</td>
-    <td>${SRC[l.source] || l.source}</td><td>${l.km != null ? (l.km < 1 ? Math.round(l.km * 1000) + ' m' : l.km + ' km') : '—'}</td></tr>`).join('');
+    <td>${SRC[l.source] || l.source}</td><td>${l.km != null ? (l.km < 1 ? Math.round(l.km * 1000) + ' m' : l.km + ' km') : '—'}${l.acc ? ` <small style="opacity:.55">±${l.acc} m</small>` : ''}</td></tr>`).join('');
   const last = log[0];
   const lastOT = log.find(isOT);
   const ok = lastOT && (Date.now() - new Date(lastOT.at)) < 6 * 3600e3;
@@ -195,6 +202,8 @@ function mePage(env, log = []) {
   <table class="hist">${rows || '<tr><td>Rien pour l\'instant</td></tr>'}</table>
   <button class="primary" id="go">📍 Envoyer ma position GPS maintenant</button>
   <div class="row"><button class="ghost" data-s="home">🏠 Maison</button><button class="ghost" data-s="kenitra">☕ Kénitra</button><button class="ghost" data-s="office">🏢 Bureau</button></div>
+  <button class="ghost" id="sethome" style="margin-top:18px">📌 Je suis à la maison : enregistrer cette position</button>
+  <div class="sub" style="font-size:13px;margin-top:6px">${homeInfo}</div>
   <div class="log" id="log"></div>
   <p class="when"><a href="/">Voir la page de Ouiame</a></p>
 </div>
@@ -208,6 +217,9 @@ go.onclick=()=>{if(!navigator.geolocation){say('GPS indisponible : utilise les b
  navigator.geolocation.getCurrentPosition(p=>send({lat:p.coords.latitude,lon:p.coords.longitude,source:'me-page'}),
   err=>say('GPS refusé ou indisponible ('+err.message+'). Utilise les boutons.'),{enableHighAccuracy:false,timeout:20000,maximumAge:120000});};
 document.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>send({state:b.dataset.s,source:'manual'}));
+sethome.onclick=()=>{if(!navigator.geolocation){say('GPS indisponible.');return;}say('Position précise en cours… reste immobile');
+ navigator.geolocation.getCurrentPosition(p=>send({lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy,sethome:true,source:'me-page'}),
+  err=>say('GPS refusé ou indisponible ('+err.message+').'),{enableHighAccuracy:true,timeout:30000,maximumAge:0});};
 setInterval(()=>location.reload(),60000);
 </script>`, '#fafafa', `.badge{margin:14px 0 6px;padding:10px 12px;border-radius:12px;font-size:15px;font-weight:600}
 .ok{background:#e8f5e9;color:#1b5e20}.warn{background:#fff3e0;color:#e65100}

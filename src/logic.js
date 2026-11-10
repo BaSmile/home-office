@@ -13,9 +13,12 @@ export function distanceKm(a, b) {
 }
 
 // home = close to the house (Wafa Immobilier point), kenitra = elsewhere in the city, office = outside Kenitra.
-export function decide(lat, lon, homeRadiusKm = 0.2, cityRadiusKm = 15, center = KENITRA) {
-  const d = distanceKm(center, { lat, lon });
-  const state = d <= homeRadiusKm ? 'home' : d <= cityRadiusKm ? 'kenitra' : 'office';
+// home: distance to the saved home point, minus the GPS accuracy reported by the phone (capped at 300 m).
+export function decide(lat, lon, homeRadiusKm = 0.2, cityRadiusKm = 15, home = KENITRA, accM = 0) {
+  const d = distanceKm(home, { lat, lon });
+  const slack = Math.min(Math.max(Number(accM) || 0, 0), 300) / 1000;
+  const city = distanceKm(KENITRA, { lat, lon });
+  const state = d - slack <= homeRadiusKm ? 'home' : city <= cityRadiusKm ? 'kenitra' : 'office';
   return { state, distanceKm: Math.round(d * 100) / 100 };
 }
 
