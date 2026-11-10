@@ -52,7 +52,7 @@ export default {
       } else {
         const c = parseCoords(params);
         if (!c) return json({ error: 'missing or invalid lat/lon' }, 400);
-        record = decide(c.lat, c.lon, Number(env.HOME_RADIUS_KM || 0.5), Number(env.CITY_RADIUS_KM || 15));
+        record = decide(c.lat, c.lon, Number(env.HOME_RADIUS_KM || 0.2), Number(env.CITY_RADIUS_KM || 15));
       }
       record.updatedAt = new Date().toISOString();
       record.source = isOwnTracks ? 'owntracks' : (params.source || 'api');
@@ -129,7 +129,7 @@ function html(body, status = 200, cookies = []) {
 const LABELS = {
   home: { emoji: '🏠', text: 'à la maison', sub: 'Kénitra', bg: '#e8f5e9', fg: '#1b5e20' },
   office: { emoji: '🏢', text: 'au bureau', sub: 'hors de Kénitra', bg: '#e3f2fd', fg: '#0d47a1' },
-  kenitra: { emoji: '🚗', text: 'à Kénitra', sub: 'en ville, pas loin de la maison', bg: '#fff8e1', fg: '#bf360c' },
+  kenitra: { emoji: '🚗', text: 'à Kénitra', sub: 'en ville, pas à la maison', bg: '#fff8e1', fg: '#bf360c' },
   unknown: { emoji: '❔', text: 'introuvable', sub: 'pas encore de position', bg: '#f5f5f5', fg: '#424242' },
 };
 

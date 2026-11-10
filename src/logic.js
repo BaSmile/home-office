@@ -13,7 +13,7 @@ export function distanceKm(a, b) {
 }
 
 // home = close to the house (Wafa Immobilier point), kenitra = elsewhere in the city, office = outside Kenitra.
-export function decide(lat, lon, homeRadiusKm = 0.5, cityRadiusKm = 15, center = KENITRA) {
+export function decide(lat, lon, homeRadiusKm = 0.2, cityRadiusKm = 15, center = KENITRA) {
   const d = distanceKm(center, { lat, lon });
   const state = d <= homeRadiusKm ? 'home' : d <= cityRadiusKm ? 'kenitra' : 'office';
   return { state, distanceKm: Math.round(d * 100) / 100 };

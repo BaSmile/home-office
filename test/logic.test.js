@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { decide, parseCoords } from '../src/logic.js';
 
 test('Wafa Immobilier point is home', () => assert.equal(decide(34.26243, -6.57962).state, 'home'));
-test('300 m away is still home', () => assert.equal(decide(34.2610, -6.5820).state, 'home'));
+test('100 m away (indoor GPS drift) is still home', () => assert.equal(decide(34.2615, -6.5800).state, 'home'));
+test('500 m away is kenitra', () => assert.equal(decide(34.2580, -6.5820).state, 'kenitra'));
 test('Elsewhere in Kenitra (2 km) is kenitra', () => assert.equal(decide(34.2450, -6.5650).state, 'kenitra'));
 test('Mehdia (~11 km) is kenitra', () => assert.equal(decide(34.2580, -6.6500).state, 'kenitra'));
 test('Rabat is office', () => assert.equal(decide(34.0209, -6.8416).state, 'office'));

@@ -9,7 +9,7 @@ id = "__KV_ID__"
 
 [vars]
 OWNER_NAME = "Bassim"
-HOME_RADIUS_KM = "0.5"   # within this distance of Wafa Immobilier (Rue Omar Rifi) = home
+HOME_RADIUS_KM = "0.2"   # home is in the Wafa Immobilier building (Rue Omar Rifi); 200 m absorbs indoor GPS drift
 CITY_RADIUS_KM = "15"    # within this distance = in Kenitra; beyond = office
 
 # Optional secrets (synced from GitHub secrets by the deploy workflow). Not set = no key needed.
