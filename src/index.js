@@ -1,4 +1,5 @@
 import { decide, parseCoords } from './logic.js';
+import { HOME_SVG, OFFICE_SVG, UNKNOWN_SVG, CHIBI_CSS } from './chibi.js';
 
 const YEAR = 60 * 60 * 24 * 365;
 
@@ -90,8 +91,11 @@ function readCookie(request, name) {
   return m ? decodeURIComponent(m[1]) : null;
 }
 function given(request, url) {
-  return url.searchParams.get('k') || request.headers.get('x-key')
-    || (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '') || null;
+  const auth = request.headers.get('authorization') || '';
+  if (/^Basic\s+/i.test(auth)) { // OwnTracks: any user name, password = key
+    try { const dec = atob(auth.replace(/^Basic\s+/i, '')); return dec.slice(dec.indexOf(':') + 1); } catch { return null; }
+  }
+  return url.searchParams.get('k') || request.headers.get('x-key') || auth.replace(/^Bearer\s+/i, '') || null;
 }
 function isOwner(request, url, env) {
   if (!env.OWNER_KEY) return true; // no key configured = open (only Bassim and Ouiame have the links)
@@ -120,7 +124,7 @@ const LABELS = {
   unknown: { emoji: '❔', text: 'introuvable', sub: 'pas encore de position', bg: '#f5f5f5', fg: '#424242' },
 };
 
-const shell = (title, body, bg = '#fafafa') => `<!doctype html><html lang="fr"><head>
+const shell = (title, body, bg = '#fafafa', css = '') => `<!doctype html><html lang="fr"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${title}</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
@@ -132,14 +136,14 @@ font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;backgr
 button{font:inherit;font-size:17px;padding:14px 18px;border-radius:14px;border:0;width:100%;margin-top:10px;cursor:pointer}
 .primary{background:#111;color:#fff}.ghost{background:#fff;border:1px solid #ddd}
 .row{display:flex;gap:10px}.row button{flex:1}.log{margin-top:18px;font-size:14px;opacity:.7;min-height:1.4em}
-</style></head><body>${body}</body></html>`;
+${css}</style></head><body>${body}</body></html>`;
 
 function statusPage(env, s) {
   const name = env.OWNER_NAME || 'Bassim';
   const L = LABELS[s.state] || LABELS.unknown;
   return shell(`${name} est ${L.text}`, `
 <div class="card" id="c" style="color:${L.fg}">
-  <div class="emoji" id="e">${L.emoji}</div>
+  <div class="scene" id="e">${HOME_SVG}${OFFICE_SVG}${UNKNOWN_SVG}</div>
   <div class="who">${name} est</div>
   <div class="state" id="t">${L.text}</div>
   <div class="sub" id="s">${L.sub}</div>
@@ -150,13 +154,14 @@ const L=${JSON.stringify(LABELS)};
 function ago(iso){if(!iso)return '';const m=Math.round((Date.now()-new Date(iso))/60000);
  const t=m<1?"à l'instant":m<60?'il y a '+m+' min':m<1440?'il y a '+Math.floor(m/60)+' h':'il y a '+Math.floor(m/1440)+' j';
  return 'Mis à jour '+t+' · '+new Date(iso).toLocaleTimeString('fr-MA',{hour:'2-digit',minute:'2-digit',timeZone:'Africa/Casablanca'});}
-function paint(st,at){const x=L[st]||L.unknown;document.body.style.background=x.bg;c.style.color=x.fg;
- e.textContent=x.emoji;t.textContent=x.text;s.textContent=x.sub;w.dataset.at=at||'';w.textContent=ago(at);
+let cur=null;
+function paint(st,at){const x=L[st]||L.unknown;if(!L[st])st='unknown';document.body.style.background=x.bg;c.style.color=x.fg;
+ if(st!==cur){document.body.className=st;e.classList.remove('pop');void e.offsetWidth;e.classList.add('pop');cur=st;}t.textContent=x.text;s.textContent=x.sub;w.dataset.at=at||'';w.textContent=ago(at);
  document.title='${name} est '+x.text;}
 paint(${JSON.stringify(s.state)},${JSON.stringify(s.updatedAt)});
 setInterval(async()=>{try{const r=await fetch('/api/status',{cache:'no-store'});if(r.ok){const j=await r.json();paint(j.state,j.updatedAt);}}catch{}},30000);
 setInterval(()=>{w.textContent=ago(w.dataset.at)},20000);
-</script>`, L.bg);
+</script>`, L.bg, CHIBI_CSS);
 }
 
 function mePage(env) {
