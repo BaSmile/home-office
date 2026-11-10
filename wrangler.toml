@@ -14,3 +14,6 @@ RADIUS_KM = "15"   # distance from Kenitra centre counted as "home"
 # Optional secrets (synced from GitHub secrets by the deploy workflow). Not set = no key needed.
 #   OWNER_KEY  locks /me and location updates
 #   VIEW_KEY   locks the status page (open once with ?k=..., remembered by cookie)
+
+[assets]
+directory = "./public"   # icons, manifests, service worker (served before the Worker)

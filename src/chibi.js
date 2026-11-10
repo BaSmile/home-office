@@ -96,3 +96,9 @@ body.home .s-home,body.office .s-office,body.unknown .s-unknown{display:block}
 .lights rect{animation:lights 2.4s steps(2) infinite}.lights rect:nth-child(2n){animation-delay:1.2s}@keyframes lights{50%{opacity:.25}}
 @media (prefers-reduced-motion:reduce){.chibi *{animation:none!important}}
 `;
+
+// App icon: chibi head on a soft green square (safe-zone friendly for Android "maskable" icons).
+export const ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="512" height="512">
+  <rect width="240" height="240" fill="#a5d6a7"/>
+  <g transform="translate(-18 3) scale(1.15)">${head(SMILE)}</g>
+</svg>`;

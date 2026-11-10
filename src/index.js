@@ -57,6 +57,9 @@ export default {
       record.updatedAt = new Date().toISOString();
       record.source = params.source || (isOwnTracks ? 'owntracks' : 'api');
       await env.KV.put('status', JSON.stringify(record));
+      const log = JSON.parse((await env.KV.get('log')) || '[]');
+      log.unshift({ at: record.updatedAt, state: record.state, source: record.source, km: record.distanceKm ?? null });
+      await env.KV.put('log', JSON.stringify(log.slice(0, 15)));
       return isOwnTracks ? json([]) : json(record);
     }
 
@@ -68,7 +71,8 @@ export default {
 
     if (path === '/me') {
       if (!owner) return html(lockedPage('/me'), 401);
-      return html(mePage(env), 200, cookies);
+      const log = JSON.parse((await env.KV.get('log')) || '[]');
+      return html(mePage(env, log), 200, cookies);
     }
 
     if (path === '/') {
@@ -124,10 +128,14 @@ const LABELS = {
   unknown: { emoji: '❔', text: 'introuvable', sub: 'pas encore de position', bg: '#f5f5f5', fg: '#424242' },
 };
 
-const shell = (title, body, bg = '#fafafa', css = '') => `<!doctype html><html lang="fr"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+const shell = (title, body, bg = '#fafafa', css = '', manifest = '/app.webmanifest') => `<!doctype html><html lang="fr"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="manifest" href="${manifest}"><meta name="theme-color" content="${bg}">
+<link rel="apple-touch-icon" href="/icon-180.png"><meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="${manifest === '/me.webmanifest' ? 'Ma position' : 'Bassim'}">
+<script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{})</script>
 <title>${title}</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
+<link rel="icon" href="/icon-192.png">
 <style>
 *{box-sizing:border-box}body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
 font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:${bg};transition:background .4s;text-align:center;padding:24px}
@@ -164,31 +172,37 @@ setInterval(()=>{w.textContent=ago(w.dataset.at)},20000);
 </script>`, L.bg, CHIBI_CSS);
 }
 
-function mePage(env) {
+function mePage(env, log = []) {
+  const SRC = { owntracks: 'OwnTracks', 'me-page': 'cette page', manual: 'manuel', api: 'API' };
+  const rows = log.map(l => `<tr data-at="${l.at}"><td class="ago"></td><td>${l.state === 'home' ? '🏠' : '🏢'}</td>
+    <td>${SRC[l.source] || l.source}</td><td>${l.km != null ? l.km + ' km' : '—'}</td></tr>`).join('');
+  const last = log[0];
+  const ok = last && last.source === 'owntracks' && (Date.now() - new Date(last.at)) < 6 * 3600e3;
   return shell('Ma position', `
 <div class="card">
-  <div class="emoji" id="e">📍</div>
+  <div class="emoji" id="e">${last ? (last.state === 'home' ? '🏠' : '🏢') : '📍'}</div>
   <div class="state" style="font-size:28px">Ma position</div>
-  <div class="sub">La page envoie ta position GPS tant qu'elle est ouverte.</div>
-  <button class="primary" id="go">Envoyer ma position maintenant</button>
+  <div class="badge ${ok ? 'ok' : 'warn'}">${ok ? '✅ OwnTracks fonctionne' : last ? '⚠️ Pas de nouvelle position OwnTracks depuis 6 h' : '⏳ Aucune position reçue'}</div>
+  <table class="hist">${rows || '<tr><td>Rien pour l\'instant</td></tr>'}</table>
+  <button class="primary" id="go">📍 Envoyer ma position GPS maintenant</button>
   <div class="row"><button class="ghost" data-s="home">🏠 Maison</button><button class="ghost" data-s="office">🏢 Bureau</button></div>
   <div class="log" id="log"></div>
   <p class="when"><a href="/">Voir la page de Ouiame</a></p>
 </div>
 <script>
 const say=t=>log.textContent=t;
+function ago(iso){const m=Math.round((Date.now()-new Date(iso))/60000);return m<1?"à l'instant":m<60?m+' min':m<1440?Math.floor(m/60)+' h '+(m%60)+' min':Math.floor(m/1440)+' j';}
+document.querySelectorAll('tr[data-at]').forEach(r=>{const d=new Date(r.dataset.at);r.querySelector('.ago').textContent=ago(r.dataset.at)+' · '+d.toLocaleTimeString('fr-MA',{hour:'2-digit',minute:'2-digit',timeZone:'Africa/Casablanca'});});
 async function send(body){const r=await fetch('/api/location',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
- const j=await r.json();if(!r.ok){say('Erreur : '+(j.error||r.status));return;}
- e.textContent=j.state==='home'?'🏠':'🏢';
- say((j.state==='home'?'Maison':'Bureau')+(j.manual?' (manuel)':' · '+j.distanceKm+' km de Kénitra')+' · '+new Date(j.updatedAt).toLocaleTimeString('fr-MA',{hour:'2-digit',minute:'2-digit'}));}
-function locate(){if(!navigator.geolocation){say('GPS indisponible : utilise les boutons.');return;}
- say('Recherche de la position…');
+ const j=await r.json();if(!r.ok){say('Erreur : '+(j.error||r.status));return;}say('Envoyé ✔');setTimeout(()=>location.reload(),600);}
+go.onclick=()=>{if(!navigator.geolocation){say('GPS indisponible : utilise les boutons.');return;}say('Recherche de la position…');
  navigator.geolocation.getCurrentPosition(p=>send({lat:p.coords.latitude,lon:p.coords.longitude,source:'me-page'}),
-  err=>say('GPS refusé ou indisponible ('+err.message+'). Utilise les boutons.'),{enableHighAccuracy:false,timeout:20000,maximumAge:120000});}
-go.onclick=locate;
+  err=>say('GPS refusé ou indisponible ('+err.message+'). Utilise les boutons.'),{enableHighAccuracy:false,timeout:20000,maximumAge:120000});};
 document.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>send({state:b.dataset.s,source:'manual'}));
-locate();setInterval(locate,5*60000);
-</script>`);
+setInterval(()=>location.reload(),60000);
+</script>`, '#fafafa', `.badge{margin:14px 0 6px;padding:10px 12px;border-radius:12px;font-size:15px;font-weight:600}
+.ok{background:#e8f5e9;color:#1b5e20}.warn{background:#fff3e0;color:#e65100}
+.hist{width:100%;border-collapse:collapse;font-size:14px;margin:6px 0 10px;text-align:left}.hist td{padding:7px 4px;border-bottom:1px solid #eee}`, '/me.webmanifest');
 }
 
 function lockedPage(next = '/', wrong = false) {
