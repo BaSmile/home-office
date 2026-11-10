@@ -1,0 +1,32 @@
+// Pure logic: where is Bassim? Kenitra = home, anywhere else = office.
+
+export const KENITRA = { lat: 34.2610, lon: -6.5802 };
+
+export function distanceKm(a, b) {
+  const R = 6371;
+  const rad = d => (d * Math.PI) / 180;
+  const dLat = rad(b.lat - a.lat);
+  const dLon = rad(b.lon - a.lon);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+export function decide(lat, lon, radiusKm = 15, center = KENITRA) {
+  const d = distanceKm(center, { lat, lon });
+  return { state: d <= radiusKm ? 'home' : 'office', distanceKm: Math.round(d * 10) / 10 };
+}
+
+// Accepts ?lat=&lon=, JSON {lat, lon}, JSON {latitude, longitude} or OwnTracks {_type:"location", lat, lon}.
+// Also accepts "34.26,-6.58" in a single `loc` field (handy for iPhone Shortcuts).
+export function parseCoords(obj = {}) {
+  let lat = obj.lat ?? obj.latitude;
+  let lon = obj.lon ?? obj.lng ?? obj.longitude;
+  if ((lat == null || lon == null) && typeof obj.loc === 'string') {
+    [lat, lon] = obj.loc.split(',').map(s => s.trim());
+  }
+  lat = Number(String(lat ?? '').replace(',', '.'));
+  lon = Number(String(lon ?? '').replace(',', '.'));
+  if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
+  if (lat === 0 && lon === 0) return null;
+  return { lat, lon };
+}

@@ -1,0 +1,179 @@
+import { decide, parseCoords } from './logic.js';
+
+const YEAR = 60 * 60 * 24 * 365;
+
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
+    const path = url.pathname.replace(/\/+$/, '') || '/';
+
+    if (path === '/health') return new Response('ok');
+
+    const owner = isOwner(request, url, env);
+    const viewer = owner || isViewer(request, url, env);
+    const cookies = [];
+    if (url.searchParams.get('k')) {
+      const k = url.searchParams.get('k');
+      if (env.OWNER_KEY && k === env.OWNER_KEY) cookies.push(cookie('ho', k));
+      else if (env.VIEW_KEY && k === env.VIEW_KEY) cookies.push(cookie('hv', k));
+    }
+
+    // Location update (from the /me page, iPhone Shortcuts, OwnTracks, Tasker…)
+    if (path === '/api/location') {
+      if (!owner) return json({ error: 'unauthorized' }, 401);
+      let body = {};
+      if (request.method === 'POST') {
+        const ct = request.headers.get('content-type') || '';
+        try {
+          body = ct.includes('json') ? await request.json()
+            : Object.fromEntries(await request.formData());
+        } catch { body = {}; }
+      }
+      const params = { ...Object.fromEntries(url.searchParams), ...body };
+      const isOwnTracks = body._type !== undefined;
+      if (isOwnTracks && body._type !== 'location') return json([]);
+
+      let record;
+      if (params.state === 'home' || params.state === 'office') {
+        record = { state: params.state, manual: true };
+      } else {
+        const c = parseCoords(params);
+        if (!c) return json({ error: 'missing or invalid lat/lon' }, 400);
+        record = decide(c.lat, c.lon, Number(env.RADIUS_KM || 15));
+      }
+      record.updatedAt = new Date().toISOString();
+      record.source = params.source || (isOwnTracks ? 'owntracks' : 'api');
+      await env.KV.put('status', JSON.stringify(record));
+      return isOwnTracks ? json([]) : json(record);
+    }
+
+    if (path === '/api/status') {
+      if (!viewer) return json({ error: 'unauthorized' }, 401);
+      const s = await getStatus(env);
+      return json({ state: s.state, updatedAt: s.updatedAt });
+    }
+
+    if (path === '/me') {
+      if (!owner) return html(lockedPage(env), 401);
+      return html(mePage(env), 200, cookies);
+    }
+
+    if (path === '/') {
+      if (!viewer) return html(lockedPage(env), 401);
+      const s = await getStatus(env);
+      return html(statusPage(env, s), 200, cookies);
+    }
+
+    return new Response('Not found', { status: 404 });
+  },
+};
+
+async function getStatus(env) {
+  const raw = await env.KV.get('status');
+  return raw ? JSON.parse(raw) : { state: 'unknown', updatedAt: null };
+}
+
+function readCookie(request, name) {
+  const m = (request.headers.get('cookie') || '').match(new RegExp(`(?:^|;\\s*)${name}=([^;]+)`));
+  return m ? decodeURIComponent(m[1]) : null;
+}
+function given(request, url) {
+  return url.searchParams.get('k') || request.headers.get('x-key')
+    || (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '') || null;
+}
+function isOwner(request, url, env) {
+  if (!env.OWNER_KEY) return false;
+  return given(request, url) === env.OWNER_KEY || readCookie(request, 'ho') === env.OWNER_KEY;
+}
+function isViewer(request, url, env) {
+  if (!env.VIEW_KEY) return true; // no key configured = open page
+  return given(request, url) === env.VIEW_KEY || readCookie(request, 'hv') === env.VIEW_KEY;
+}
+const cookie = (n, v) => `${n}=${encodeURIComponent(v)}; Path=/; Max-Age=${YEAR}; HttpOnly; Secure; SameSite=Lax`;
+
+function json(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
+  });
+}
+function html(body, status = 200, cookies = []) {
+  const h = new Headers({ 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+  cookies.forEach(c => h.append('set-cookie', c));
+  return new Response(body, { status, headers: h });
+}
+
+const LABELS = {
+  home: { emoji: '🏠', text: 'à la maison', sub: 'Kénitra', bg: '#e8f5e9', fg: '#1b5e20' },
+  office: { emoji: '🏢', text: 'au bureau', sub: 'hors de Kénitra', bg: '#e3f2fd', fg: '#0d47a1' },
+  unknown: { emoji: '❔', text: 'introuvable', sub: 'pas encore de position', bg: '#f5f5f5', fg: '#424242' },
+};
+
+const shell = (title, body, bg = '#fafafa') => `<!doctype html><html lang="fr"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${title}</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:${bg};transition:background .4s;text-align:center;padding:24px}
+.card{max-width:420px;width:100%}.emoji{font-size:110px;line-height:1}.who{font-size:20px;opacity:.7;margin-top:18px}
+.state{font-size:40px;font-weight:800;margin:4px 0}.sub{font-size:16px;opacity:.6}.when{margin-top:28px;font-size:14px;opacity:.55}
+button{font:inherit;font-size:17px;padding:14px 18px;border-radius:14px;border:0;width:100%;margin-top:10px;cursor:pointer}
+.primary{background:#111;color:#fff}.ghost{background:#fff;border:1px solid #ddd}
+.row{display:flex;gap:10px}.row button{flex:1}.log{margin-top:18px;font-size:14px;opacity:.7;min-height:1.4em}
+</style></head><body>${body}</body></html>`;
+
+function statusPage(env, s) {
+  const name = env.OWNER_NAME || 'Bassim';
+  const L = LABELS[s.state] || LABELS.unknown;
+  return shell(`${name} est ${L.text}`, `
+<div class="card" id="c" style="color:${L.fg}">
+  <div class="emoji" id="e">${L.emoji}</div>
+  <div class="who">${name} est</div>
+  <div class="state" id="t">${L.text}</div>
+  <div class="sub" id="s">${L.sub}</div>
+  <div class="when" id="w" data-at="${s.updatedAt || ''}"></div>
+</div>
+<script>
+const L=${JSON.stringify(LABELS)};
+function ago(iso){if(!iso)return '';const m=Math.round((Date.now()-new Date(iso))/60000);
+ const t=m<1?"à l'instant":m<60?'il y a '+m+' min':m<1440?'il y a '+Math.floor(m/60)+' h':'il y a '+Math.floor(m/1440)+' j';
+ return 'Mis à jour '+t+' · '+new Date(iso).toLocaleTimeString('fr-MA',{hour:'2-digit',minute:'2-digit',timeZone:'Africa/Casablanca'});}
+function paint(st,at){const x=L[st]||L.unknown;document.body.style.background=x.bg;c.style.color=x.fg;
+ e.textContent=x.emoji;t.textContent=x.text;s.textContent=x.sub;w.dataset.at=at||'';w.textContent=ago(at);
+ document.title='${name} est '+x.text;}
+paint(${JSON.stringify(s.state)},${JSON.stringify(s.updatedAt)});
+setInterval(async()=>{try{const r=await fetch('/api/status',{cache:'no-store'});if(r.ok){const j=await r.json();paint(j.state,j.updatedAt);}}catch{}},30000);
+setInterval(()=>{w.textContent=ago(w.dataset.at)},20000);
+</script>`, L.bg);
+}
+
+function mePage(env) {
+  return shell('Ma position', `
+<div class="card">
+  <div class="emoji" id="e">📍</div>
+  <div class="state" style="font-size:28px">Ma position</div>
+  <div class="sub">La page envoie ta position GPS tant qu'elle est ouverte.</div>
+  <button class="primary" id="go">Envoyer ma position maintenant</button>
+  <div class="row"><button class="ghost" data-s="home">🏠 Maison</button><button class="ghost" data-s="office">🏢 Bureau</button></div>
+  <div class="log" id="log"></div>
+  <p class="when"><a href="/">Voir la page de Ouiame</a></p>
+</div>
+<script>
+const say=t=>log.textContent=t;
+async function send(body){const r=await fetch('/api/location',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
+ const j=await r.json();if(!r.ok){say('Erreur : '+(j.error||r.status));return;}
+ e.textContent=j.state==='home'?'🏠':'🏢';
+ say((j.state==='home'?'Maison':'Bureau')+(j.manual?' (manuel)':' · '+j.distanceKm+' km de Kénitra')+' · '+new Date(j.updatedAt).toLocaleTimeString('fr-MA',{hour:'2-digit',minute:'2-digit'}));}
+function locate(){if(!navigator.geolocation){say('GPS indisponible : utilise les boutons.');return;}
+ say('Recherche de la position…');
+ navigator.geolocation.getCurrentPosition(p=>send({lat:p.coords.latitude,lon:p.coords.longitude,source:'me-page'}),
+  err=>say('GPS refusé ou indisponible ('+err.message+'). Utilise les boutons.'),{enableHighAccuracy:false,timeout:20000,maximumAge:120000});}
+go.onclick=locate;
+document.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>send({state:b.dataset.s,source:'manual'}));
+locate();setInterval(locate,5*60000);
+</script>`);
+}
+
+function lockedPage() {
+  return shell('🔒', `<div class="card"><div class="emoji">🔒</div><div class="sub" style="margin-top:16px">Ouvre le lien complet qu'on t'a envoyé.</div></div>`);
+}

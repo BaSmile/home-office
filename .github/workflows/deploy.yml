@@ -1,0 +1,39 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Tests
+        run: npm test
+      - name: KV namespace (create if missing)
+        run: node scripts/ensure-kv.mjs
+      - name: Deploy Worker
+        run: npx wrangler deploy
+      - name: Worker secrets (from GitHub secrets)
+        env:
+          OWNER_KEY: ${{ secrets.OWNER_KEY }}
+          VIEW_KEY: ${{ secrets.VIEW_KEY }}
+        run: node scripts/sync-secrets.mjs
+      - name: Health check
+        run: |
+          sleep 8
+          curl -sf https://home-office.bassim-raji.workers.dev/health

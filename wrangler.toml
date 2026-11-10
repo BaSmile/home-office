@@ -1,0 +1,16 @@
+name = "home-office"
+main = "src/index.js"
+compatibility_date = "2026-01-01"
+
+[[kv_namespaces]]
+binding = "KV"
+# Filled in by scripts/ensure-kv.mjs during deploy (creates the namespace the first time).
+id = "__KV_ID__"
+
+[vars]
+OWNER_NAME = "Bassim"
+RADIUS_KM = "15"   # distance from Kenitra centre counted as "home"
+
+# Secrets (synced from GitHub secrets by the deploy workflow):
+#   OWNER_KEY  Bassim's key: /me page + location updates
+#   VIEW_KEY   Ouiame's key: status page (open once with ?k=..., remembered by cookie)
