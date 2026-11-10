@@ -9,7 +9,9 @@ id = "__KV_ID__"
 
 [vars]
 OWNER_NAME = "Bassim"
+OFFICE_DAYS = "lundi, mercredi, jeudi"   # shown on Ouiame's page when at the office
 HOME_RADIUS_KM = "0.2"   # home is in the Wafa Immobilier building (Rue Omar Rifi); 200 m absorbs indoor GPS drift
+GYM_RADIUS_KM = "0.1"    # Legends of Fighters (CrossFit); nearest of home/gym wins
 CITY_RADIUS_KM = "15"    # within this distance = in Kenitra; beyond = office
 
 # Optional secrets (synced from GitHub secrets by the deploy workflow). Not set = no key needed.

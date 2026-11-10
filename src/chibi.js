@@ -130,6 +130,32 @@ export const KENITRA_SVG = `
   </g>
 </svg>`;
 
+export const GYM_SVG = `
+<svg class="chibi s-gym" viewBox="0 0 240 240" aria-hidden="true">
+  <g opacity=".85"><rect x="176" y="34" width="56" height="62" rx="5" fill="#fff"/>
+    <text x="204" y="54" text-anchor="middle" font-family="sans-serif" font-weight="800" font-size="13" fill="#b71c1c">WOD</text>
+    <text x="204" y="70" text-anchor="middle" font-family="monospace" font-weight="700" font-size="10" fill="#37474f">21-15-9</text>
+    <path d="M186 80 h36 M190 88 h28" stroke="#b0bec5" stroke-width="3" stroke-linecap="round"/></g>
+  <g opacity=".85"><circle cx="24" cy="200" r="20" fill="#37474f"/><circle cx="24" cy="200" r="6" fill="#ffe3d8"/>
+    <circle cx="36" cy="208" r="16" fill="#e53935"/><circle cx="36" cy="208" r="5" fill="#ffe3d8"/></g>
+  <g><path d="M200 210 q0 -14 10 -14 q10 0 10 14" fill="none" stroke="#263238" stroke-width="5"/><circle cx="210" cy="222" r="15" fill="#263238"/>
+    <text x="210" y="227" text-anchor="middle" font-family="sans-serif" font-weight="800" font-size="11" fill="#fff">16</text></g>
+  <g class="bob">
+    <path d="M66 236 Q66 162 120 162 Q174 162 174 236Z" fill="${FACE.skin}"/>
+    <path d="M86 236 Q86 186 98 166 Q120 184 142 166 Q154 186 154 236Z" fill="#212121"/>
+    <text x="120" y="214" text-anchor="middle" font-family="sans-serif" font-weight="800" font-size="11" fill="#e53935">LOF</text>
+    <g class="lift1"><path d="M78 182 L62 216" stroke="${FACE.skin}" stroke-width="14" stroke-linecap="round"/>
+      <rect x="46" y="218" width="30" height="6" rx="2" fill="#607d8b"/><rect x="42" y="211" width="9" height="20" rx="2" fill="#263238"/><rect x="71" y="211" width="9" height="20" rx="2" fill="#263238"/></g>
+    <g class="lift2"><path d="M162 182 L178 216" stroke="${FACE.skin}" stroke-width="14" stroke-linecap="round"/>
+      <rect x="164" y="218" width="30" height="6" rx="2" fill="#607d8b"/><rect x="160" y="211" width="9" height="20" rx="2" fill="#263238"/><rect x="189" y="211" width="9" height="20" rx="2" fill="#263238"/></g>
+    ${head(SMILE)}
+    <path d="M63 90 Q120 70 177 90 L178 100 Q120 80 62 100Z" fill="#e53935"/>
+    <path d="M176 92 l14 -6 l-2 10z M176 96 l12 6 l-10 4z" fill="#e53935"/>
+  </g>
+  <path class="sweat" d="M58 86 q4 7 0 10 q-4 -3 0 -10z" fill="#4fc3f7"/>
+  <path class="sweat s2" d="M184 112 q4 7 0 10 q-4 -3 0 -10z" fill="#4fc3f7"/>
+</svg>`;
+
 export const UNKNOWN_SVG = `
 <svg class="chibi s-unknown" viewBox="0 0 240 240" aria-hidden="true">
   <g class="bob tilt">
@@ -141,7 +167,7 @@ export const UNKNOWN_SVG = `
 
 export const CHIBI_CSS = `
 .scene{width:min(300px,80vw);aspect-ratio:1;margin:0 auto}.chibi{width:100%;height:100%;display:none;overflow:visible}
-body.home .s-home,body.kenitra .s-kenitra,body.office .s-office,body.unknown .s-unknown{display:block}
+body.home .s-home,body.gym .s-gym,body.kenitra .s-kenitra,body.office .s-office,body.unknown .s-unknown{display:block}
 .parasol{transform-box:view-box;transform-origin:120px 40px;animation:parasol 4s ease-in-out infinite}@keyframes parasol{50%{transform:rotate(2deg)}}
 .beans g{animation:bean 3.6s ease-in-out infinite}.beans .b2{animation-delay:1.2s}.beans .b3{animation-delay:2.4s}@keyframes bean{50%{transform:translateY(-8px) rotate(12deg)}}
 .sip{animation:sip 4.5s ease-in-out infinite}@keyframes sip{0%,60%,100%{transform:translate(0,0)}72%,85%{transform:translate(-14px,-30px)}}
@@ -158,6 +184,11 @@ body.home .s-home,body.kenitra .s-kenitra,body.office .s-office,body.unknown .s-
 .t1,.t2{animation:type .28s ease-in-out infinite alternate}.t2{animation-delay:.14s}@keyframes type{to{transform:translateY(-6px)}}
 .code{animation:float 3s ease-in-out infinite}.c2{animation-delay:1.5s}@keyframes float{0%{opacity:0;transform:translateY(8px)}40%{opacity:1}100%{opacity:0;transform:translateY(-18px)}}
 .lights rect{animation:lights 2.4s steps(2) infinite}.lights rect:nth-child(2n){animation-delay:1.2s}@keyframes lights{50%{opacity:.25}}
+.lift1{transform-box:view-box;transform-origin:78px 182px;animation:lift1 1.6s ease-in-out infinite}
+.lift2{transform-box:view-box;transform-origin:162px 182px;animation:lift2 1.6s ease-in-out infinite .8s}
+@keyframes lift1{0%,100%{transform:rotate(0)}40%,55%{transform:rotate(95deg)}}@keyframes lift2{0%,100%{transform:rotate(0)}40%,55%{transform:rotate(-95deg)}}
+.sweat{animation:sweat 1.8s ease-in infinite}.s2{animation-delay:.9s}@keyframes sweat{0%{opacity:0;transform:translateY(-4px)}20%{opacity:1}100%{opacity:0;transform:translateY(22px)}}
+.days{display:none;margin-top:18px;font-size:16px;padding:10px 14px;border-radius:12px;background:rgba(255,255,255,.65)}body.office .days{display:inline-block}
 @media (prefers-reduced-motion:reduce){.chibi *{animation:none!important}}
 `;
 

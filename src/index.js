@@ -1,5 +1,5 @@
 import { decide, parseCoords } from './logic.js';
-import { HOME_SVG, OFFICE_SVG, KENITRA_SVG, UNKNOWN_SVG, CHIBI_CSS } from './chibi.js';
+import { HOME_SVG, OFFICE_SVG, KENITRA_SVG, GYM_SVG, UNKNOWN_SVG, CHIBI_CSS } from './chibi.js';
 
 const YEAR = 60 * 60 * 24 * 365;
 
@@ -47,16 +47,21 @@ export default {
       if (isOwnTracks && body._type !== 'location') return json([]);
 
       let record;
-      if (['home', 'kenitra', 'office'].includes(params.state)) {
+      if (['home', 'gym', 'kenitra', 'office'].includes(params.state)) {
         record = { state: params.state, manual: true };
       } else {
         const c = parseCoords(params);
         if (!c) return json({ error: 'missing or invalid lat/lon' }, 400);
-        if (params.sethome === true || params.sethome === 'true' || params.sethome === '1') {
-          await env.KV.put('home', JSON.stringify({ lat: c.lat, lon: c.lon, savedAt: new Date().toISOString() }));
+        const setPlace = params.setplace || ((params.sethome === true || params.sethome === 'true') ? 'home' : null);
+        if (setPlace === 'home' || setPlace === 'gym') {
+          await env.KV.put(setPlace, JSON.stringify({ lat: c.lat, lon: c.lon, savedAt: new Date().toISOString() }));
         }
         const homePt = JSON.parse((await env.KV.get('home')) || 'null') || undefined;
-        record = decide(c.lat, c.lon, Number(env.HOME_RADIUS_KM || 0.2), Number(env.CITY_RADIUS_KM || 15), homePt, params.acc ?? params.accuracy);
+        const gymPt = JSON.parse((await env.KV.get('gym')) || 'null') || undefined;
+        record = decide(c.lat, c.lon, {
+          home: homePt, gym: gymPt, accM: params.acc ?? params.accuracy,
+          homeRadiusKm: Number(env.HOME_RADIUS_KM || 0.2), gymRadiusKm: Number(env.GYM_RADIUS_KM || 0.1), cityRadiusKm: Number(env.CITY_RADIUS_KM || 15),
+        });
         if (params.acc ?? params.accuracy) record.accM = Math.round(Number(params.acc ?? params.accuracy));
       }
       record.updatedAt = new Date().toISOString();
@@ -82,7 +87,8 @@ export default {
       if (!owner) return html(lockedPage('/me'), 401);
       const log = JSON.parse((await env.KV.get('log')) || '[]');
       const home = JSON.parse((await env.KV.get('home')) || 'null');
-      return html(mePage(env, log, home), 200, cookies);
+      const gym = JSON.parse((await env.KV.get('gym')) || 'null');
+      return html(mePage(env, log, home, gym), 200, cookies);
     }
 
     if (path === '/') {
@@ -135,6 +141,7 @@ function html(body, status = 200, cookies = []) {
 const LABELS = {
   home: { emoji: '🏠', text: 'à la maison', sub: 'Kénitra', bg: '#e8f5e9', fg: '#1b5e20' },
   office: { emoji: '🏢', text: 'au bureau', sub: 'hors de Kénitra', bg: '#e3f2fd', fg: '#0d47a1' },
+  gym: { emoji: '💪', text: 'à la salle', sub: 'Legends of Fighters · CrossFit', bg: '#ffe3d8', fg: '#b71c1c' },
   kenitra: { emoji: '☕', text: 'à Kénitra', sub: 'en ville, pause café', bg: '#f3e5d8', fg: '#5d4037' },
   unknown: { emoji: '❔', text: 'introuvable', sub: 'pas encore de position', bg: '#f5f5f5', fg: '#424242' },
 };
@@ -162,10 +169,11 @@ function statusPage(env, s) {
   const L = LABELS[s.state] || LABELS.unknown;
   return shell(`${name} est ${L.text}`, `
 <div class="card" id="c" style="color:${L.fg}">
-  <div class="scene" id="e">${HOME_SVG}${KENITRA_SVG}${OFFICE_SVG}${UNKNOWN_SVG}</div>
+  <div class="scene" id="e">${HOME_SVG}${GYM_SVG}${KENITRA_SVG}${OFFICE_SVG}${UNKNOWN_SVG}</div>
   <div class="who">${name} est</div>
   <div class="state" id="t">${L.text}</div>
   <div class="sub" id="s">${L.sub}</div>
+  <div class="days" id="days">📅 Au bureau le <b>${env.OFFICE_DAYS || 'lundi, mercredi, jeudi'}</b></div>
   <div class="when" id="w" data-at="${s.updatedAt || ''}"></div>
 </div>
 <script>
@@ -183,9 +191,10 @@ setInterval(()=>{w.textContent=ago(w.dataset.at)},20000);
 </script>`, L.bg, CHIBI_CSS);
 }
 
-const ICON = { home: '🏠', kenitra: '☕', office: '🏢' };
+const ICON = { home: '🏠', gym: '💪', kenitra: '☕', office: '🏢' };
 
-function mePage(env, log = [], home = null) {
+function mePage(env, log = [], home = null, gym = null) {
+  const gymInfo = gym ? 'Salle enregistrée le ' + new Date(gym.savedAt).toLocaleDateString('fr-MA') + ' · rayon ' + Math.round(Number(env.GYM_RADIUS_KM || 0.1) * 1000) + ' m' : 'Salle actuelle : point Legends of Fighters (Google Maps)';
   const homeInfo = home ? 'Maison enregistrée le ' + new Date(home.savedAt).toLocaleDateString('fr-MA') + ' · rayon ' + Math.round(Number(env.HOME_RADIUS_KM || 0.2) * 1000) + ' m' : 'Maison actuelle : point Wafa Immobilier (Google Maps)';
   const SRC = { owntracks: 'OwnTracks', fused: 'OwnTracks', gps: 'OwnTracks', network: 'OwnTracks', 'me-page': 'cette page', manual: 'manuel', api: 'API' };
   const isOT = l => SRC[l.source] === 'OwnTracks';
@@ -201,9 +210,11 @@ function mePage(env, log = [], home = null) {
   <div class="badge ${ok ? 'ok' : 'warn'}">${ok ? '✅ OwnTracks fonctionne' : last ? '⚠️ Pas de nouvelle position OwnTracks depuis 6 h' : '⏳ Aucune position reçue'}</div>
   <table class="hist">${rows || '<tr><td>Rien pour l\'instant</td></tr>'}</table>
   <button class="primary" id="go">📍 Envoyer ma position GPS maintenant</button>
-  <div class="row"><button class="ghost" data-s="home">🏠 Maison</button><button class="ghost" data-s="kenitra">☕ Kénitra</button><button class="ghost" data-s="office">🏢 Bureau</button></div>
-  <button class="ghost" id="sethome" style="margin-top:18px">📌 Je suis à la maison : enregistrer cette position</button>
+  <div class="row"><button class="ghost" data-s="home">🏠 Maison</button><button class="ghost" data-s="gym">💪 Salle</button><button class="ghost" data-s="kenitra">☕ Kénitra</button><button class="ghost" data-s="office">🏢 Bureau</button></div>
+  <button class="ghost" data-set="home" style="margin-top:18px">📌 Je suis à la maison : enregistrer cette position</button>
   <div class="sub" style="font-size:13px;margin-top:6px">${homeInfo}</div>
+  <button class="ghost" data-set="gym" style="margin-top:12px">📌 Je suis à la salle : enregistrer cette position</button>
+  <div class="sub" style="font-size:13px;margin-top:6px">${gymInfo}</div>
   <div class="log" id="log"></div>
   <p class="when"><a href="/">Voir la page de Ouiame</a></p>
 </div>
@@ -217,9 +228,9 @@ go.onclick=()=>{if(!navigator.geolocation){say('GPS indisponible : utilise les b
  navigator.geolocation.getCurrentPosition(p=>send({lat:p.coords.latitude,lon:p.coords.longitude,source:'me-page'}),
   err=>say('GPS refusé ou indisponible ('+err.message+'). Utilise les boutons.'),{enableHighAccuracy:false,timeout:20000,maximumAge:120000});};
 document.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>send({state:b.dataset.s,source:'manual'}));
-sethome.onclick=()=>{if(!navigator.geolocation){say('GPS indisponible.');return;}say('Position précise en cours… reste immobile');
- navigator.geolocation.getCurrentPosition(p=>send({lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy,sethome:true,source:'me-page'}),
-  err=>say('GPS refusé ou indisponible ('+err.message+').'),{enableHighAccuracy:true,timeout:30000,maximumAge:0});};
+document.querySelectorAll('[data-set]').forEach(b=>b.onclick=()=>{if(!navigator.geolocation){say('GPS indisponible.');return;}say('Position précise en cours… reste immobile');
+ navigator.geolocation.getCurrentPosition(p=>send({lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy,setplace:b.dataset.set,source:'me-page'}),
+  err=>say('GPS refusé ou indisponible ('+err.message+').'),{enableHighAccuracy:true,timeout:30000,maximumAge:0});});
 setInterval(()=>location.reload(),60000);
 </script>`, '#fafafa', `.badge{margin:14px 0 6px;padding:10px 12px;border-radius:12px;font-size:15px;font-weight:600}
 .ok{background:#e8f5e9;color:#1b5e20}.warn{background:#fff3e0;color:#e65100}

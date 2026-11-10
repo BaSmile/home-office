@@ -1,4 +1,4 @@
-// Pure logic: where is Bassim? Kenitra = home, anywhere else = office.
+// Pure logic: where is Bassim? home / gym / elsewhere in Kenitra / office (outside Kenitra).
 
 // Home point: Wafa Immobilier, Rue Omar Rifi, Kenitra (closest landmark to Bassim's home).
 export const KENITRA = { lat: 34.26243, lon: -6.57962 };
@@ -12,14 +12,23 @@ export function distanceKm(a, b) {
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
-// home = close to the house (Wafa Immobilier point), kenitra = elsewhere in the city, office = outside Kenitra.
-// home: distance to the saved home point, minus the GPS accuracy reported by the phone (capped at 300 m).
-export function decide(lat, lon, homeRadiusKm = 0.2, cityRadiusKm = 15, home = KENITRA, accM = 0) {
-  const d = distanceKm(home, { lat, lon });
-  const slack = Math.min(Math.max(Number(accM) || 0, 0), 300) / 1000;
-  const city = distanceKm(KENITRA, { lat, lon });
-  const state = d - slack <= homeRadiusKm ? 'home' : city <= cityRadiusKm ? 'kenitra' : 'office';
-  return { state, distanceKm: Math.round(d * 100) / 100 };
+// Gym: Legends of Fighters, Rue Mohamed Abdou, Kenitra (CrossFit) — ~200 m from home, so the nearest place wins.
+export const GYM = { lat: 34.2607946, lon: -6.5783914 };
+
+// Order: a known place (home or gym, whichever is nearest and within its radius) > elsewhere in Kenitra > office.
+// GPS accuracy reported by the phone gives some slack (capped) so a fuzzy indoor reading still counts.
+export function decide(lat, lon, opts = {}) {
+  const { home = KENITRA, gym = GYM, homeRadiusKm = 0.2, gymRadiusKm = 0.1, cityRadiusKm = 15, accM = 0 } = opts;
+  const p = { lat, lon };
+  const acc = Math.max(Number(accM) || 0, 0) / 1000;
+  const dHome = distanceKm(home, p);
+  const dGym = distanceKm(gym, p);
+  const places = [
+    { state: 'home', d: dHome, ok: dHome - Math.min(acc, 0.3) <= homeRadiusKm },
+    { state: 'gym', d: dGym, ok: dGym - Math.min(acc, 0.1) <= gymRadiusKm },
+  ].filter(x => x.ok).sort((x, y) => x.d - y.d);
+  const state = places[0]?.state || (distanceKm(KENITRA, p) <= cityRadiusKm ? 'kenitra' : 'office');
+  return { state, distanceKm: Math.round(dHome * 100) / 100 };
 }
 
 // Accepts ?lat=&lon=, JSON {lat, lon}, JSON {latitude, longitude} or OwnTracks {_type:"location", lat, lon}.
