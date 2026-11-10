@@ -1,5 +1,5 @@
 import { decide, parseCoords } from './logic.js';
-import { HOME_SVG, OFFICE_SVG, UNKNOWN_SVG, CHIBI_CSS } from './chibi.js';
+import { HOME_SVG, OFFICE_SVG, KENITRA_SVG, UNKNOWN_SVG, CHIBI_CSS } from './chibi.js';
 
 const YEAR = 60 * 60 * 24 * 365;
 
@@ -47,12 +47,12 @@ export default {
       if (isOwnTracks && body._type !== 'location') return json([]);
 
       let record;
-      if (params.state === 'home' || params.state === 'office') {
+      if (['home', 'kenitra', 'office'].includes(params.state)) {
         record = { state: params.state, manual: true };
       } else {
         const c = parseCoords(params);
         if (!c) return json({ error: 'missing or invalid lat/lon' }, 400);
-        record = decide(c.lat, c.lon, Number(env.RADIUS_KM || 15));
+        record = decide(c.lat, c.lon, Number(env.HOME_RADIUS_KM || 0.5), Number(env.CITY_RADIUS_KM || 15));
       }
       record.updatedAt = new Date().toISOString();
       record.source = isOwnTracks ? 'owntracks' : (params.source || 'api');
@@ -129,6 +129,7 @@ function html(body, status = 200, cookies = []) {
 const LABELS = {
   home: { emoji: '🏠', text: 'à la maison', sub: 'Kénitra', bg: '#e8f5e9', fg: '#1b5e20' },
   office: { emoji: '🏢', text: 'au bureau', sub: 'hors de Kénitra', bg: '#e3f2fd', fg: '#0d47a1' },
+  kenitra: { emoji: '🚗', text: 'à Kénitra', sub: 'en ville, pas loin de la maison', bg: '#fff8e1', fg: '#bf360c' },
   unknown: { emoji: '❔', text: 'introuvable', sub: 'pas encore de position', bg: '#f5f5f5', fg: '#424242' },
 };
 
@@ -155,7 +156,7 @@ function statusPage(env, s) {
   const L = LABELS[s.state] || LABELS.unknown;
   return shell(`${name} est ${L.text}`, `
 <div class="card" id="c" style="color:${L.fg}">
-  <div class="scene" id="e">${HOME_SVG}${OFFICE_SVG}${UNKNOWN_SVG}</div>
+  <div class="scene" id="e">${HOME_SVG}${KENITRA_SVG}${OFFICE_SVG}${UNKNOWN_SVG}</div>
   <div class="who">${name} est</div>
   <div class="state" id="t">${L.text}</div>
   <div class="sub" id="s">${L.sub}</div>
@@ -176,22 +177,24 @@ setInterval(()=>{w.textContent=ago(w.dataset.at)},20000);
 </script>`, L.bg, CHIBI_CSS);
 }
 
+const ICON = { home: '🏠', kenitra: '🚗', office: '🏢' };
+
 function mePage(env, log = []) {
   const SRC = { owntracks: 'OwnTracks', fused: 'OwnTracks', gps: 'OwnTracks', network: 'OwnTracks', 'me-page': 'cette page', manual: 'manuel', api: 'API' };
   const isOT = l => SRC[l.source] === 'OwnTracks';
-  const rows = log.map(l => `<tr data-at="${l.at}"><td class="ago"></td><td>${l.state === 'home' ? '🏠' : '🏢'}</td>
-    <td>${SRC[l.source] || l.source}</td><td>${l.km != null ? l.km + ' km' : '—'}</td></tr>`).join('');
+  const rows = log.map(l => `<tr data-at="${l.at}"><td class="ago"></td><td>${ICON[l.state] || '❔'}</td>
+    <td>${SRC[l.source] || l.source}</td><td>${l.km != null ? (l.km < 1 ? Math.round(l.km * 1000) + ' m' : l.km + ' km') : '—'}</td></tr>`).join('');
   const last = log[0];
   const lastOT = log.find(isOT);
   const ok = lastOT && (Date.now() - new Date(lastOT.at)) < 6 * 3600e3;
   return shell('Ma position', `
 <div class="card">
-  <div class="emoji" id="e">${last ? (last.state === 'home' ? '🏠' : '🏢') : '📍'}</div>
+  <div class="emoji" id="e">${last ? ICON[last.state] || '📍' : '📍'}</div>
   <div class="state" style="font-size:28px">Ma position</div>
   <div class="badge ${ok ? 'ok' : 'warn'}">${ok ? '✅ OwnTracks fonctionne' : last ? '⚠️ Pas de nouvelle position OwnTracks depuis 6 h' : '⏳ Aucune position reçue'}</div>
   <table class="hist">${rows || '<tr><td>Rien pour l\'instant</td></tr>'}</table>
   <button class="primary" id="go">📍 Envoyer ma position GPS maintenant</button>
-  <div class="row"><button class="ghost" data-s="home">🏠 Maison</button><button class="ghost" data-s="office">🏢 Bureau</button></div>
+  <div class="row"><button class="ghost" data-s="home">🏠 Maison</button><button class="ghost" data-s="kenitra">🚗 Kénitra</button><button class="ghost" data-s="office">🏢 Bureau</button></div>
   <div class="log" id="log"></div>
   <p class="when"><a href="/">Voir la page de Ouiame</a></p>
 </div>

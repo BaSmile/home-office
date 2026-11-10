@@ -12,9 +12,11 @@ export function distanceKm(a, b) {
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
-export function decide(lat, lon, radiusKm = 15, center = KENITRA) {
+// home = close to the house (Wafa Immobilier point), kenitra = elsewhere in the city, office = outside Kenitra.
+export function decide(lat, lon, homeRadiusKm = 0.5, cityRadiusKm = 15, center = KENITRA) {
   const d = distanceKm(center, { lat, lon });
-  return { state: d <= radiusKm ? 'home' : 'office', distanceKm: Math.round(d * 10) / 10 };
+  const state = d <= homeRadiusKm ? 'home' : d <= cityRadiusKm ? 'kenitra' : 'office';
+  return { state, distanceKm: Math.round(d * 100) / 100 };
 }
 
 // Accepts ?lat=&lon=, JSON {lat, lon}, JSON {latitude, longitude} or OwnTracks {_type:"location", lat, lon}.

@@ -9,7 +9,8 @@ id = "__KV_ID__"
 
 [vars]
 OWNER_NAME = "Bassim"
-RADIUS_KM = "15"   # distance from Kenitra centre counted as "home"
+HOME_RADIUS_KM = "0.5"   # within this distance of Wafa Immobilier (Rue Omar Rifi) = home
+CITY_RADIUS_KM = "15"    # within this distance = in Kenitra; beyond = office
 
 # Optional secrets (synced from GitHub secrets by the deploy workflow). Not set = no key needed.
 #   OWNER_KEY  locks /me and location updates

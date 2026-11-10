@@ -92,6 +92,31 @@ export const OFFICE_SVG = `
   <text class="code c2" x="22" y="140" font-family="monospace" font-weight="700" font-size="16" fill="#0d47a1">{ }</text>
 </svg>`;
 
+export const KENITRA_SVG = `
+<svg class="chibi s-kenitra" viewBox="0 0 240 240" aria-hidden="true">
+  <circle class="sun" cx="204" cy="38" r="15" fill="#ffd54f"/>
+  <g fill="none" stroke="#fff" stroke-linecap="round" opacity=".7">
+    <path d="M30 234 Q38 180 30 128" stroke-width="7"/><path d="M212 234 Q204 186 212 140" stroke-width="7"/></g>
+  <g class="palm" fill="#fff" opacity=".7">
+    <ellipse cx="16" cy="126" rx="18" ry="6" transform="rotate(20 30 128)"/><ellipse cx="44" cy="126" rx="18" ry="6" transform="rotate(-20 30 128)"/>
+    <ellipse cx="30" cy="116" rx="6" ry="16"/></g>
+  <g class="palm p2" fill="#fff" opacity=".7">
+    <ellipse cx="198" cy="138" rx="18" ry="6" transform="rotate(20 212 140)"/><ellipse cx="226" cy="138" rx="18" ry="6" transform="rotate(-20 212 140)"/>
+    <ellipse cx="212" cy="128" rx="6" ry="16"/></g>
+  <rect x="0" y="222" width="240" height="18" fill="#fff" opacity=".55"/>
+  <g class="drive"><rect x="0" y="200" width="46" height="16" rx="6" fill="#ef5350"/><path d="M8 200 l6 -10 h18 l6 10z" fill="#ef5350"/>
+    <path d="M14 199 l4 -7 h12 l4 7z" fill="#e3f2fd"/><circle cx="11" cy="217" r="5.5" fill="#37474f"/><circle cx="35" cy="217" r="5.5" fill="#37474f"/></g>
+  <g class="bob">
+    <path d="M66 236 Q66 162 120 162 Q174 162 174 236Z" fill="#26a69a"/>
+    <path d="M100 163 Q120 180 140 163" fill="none" stroke="#1d8479" stroke-width="3"/>
+    <g class="wave"><path d="M164 188 Q186 172 192 150" stroke="#26a69a" stroke-width="17" stroke-linecap="round" fill="none"/>
+      <path d="M192 150 L194 140" stroke="${FACE.skin}" stroke-width="12" stroke-linecap="round"/></g>
+    <g class="swing"><path d="M62 196 q8 -16 16 0" fill="none" stroke="#8d6e63" stroke-width="3"/>
+      <path d="M54 196 h32 l-4 30 h-24z" fill="#ffb74d"/><circle cx="76" cy="192" r="10" fill="${FACE.skin}"/></g>
+    ${head(SMILE)}
+  </g>
+</svg>`;
+
 export const UNKNOWN_SVG = `
 <svg class="chibi s-unknown" viewBox="0 0 240 240" aria-hidden="true">
   <g class="bob tilt">
@@ -103,7 +128,12 @@ export const UNKNOWN_SVG = `
 
 export const CHIBI_CSS = `
 .scene{width:min(300px,80vw);aspect-ratio:1;margin:0 auto}.chibi{width:100%;height:100%;display:none;overflow:visible}
-body.home .s-home,body.office .s-office,body.unknown .s-unknown{display:block}
+body.home .s-home,body.kenitra .s-kenitra,body.office .s-office,body.unknown .s-unknown{display:block}
+.drive{animation:drive 6s linear infinite}@keyframes drive{0%{transform:translateX(-60px)}100%{transform:translateX(260px)}}
+.sun{transform-box:fill-box;transform-origin:center;animation:sun 3s ease-in-out infinite}@keyframes sun{50%{transform:scale(1.15)}}
+.palm{transform-box:view-box;transform-origin:30px 128px;animation:palm 3.5s ease-in-out infinite}.p2{transform-origin:212px 140px;animation-delay:1.2s}
+@keyframes palm{50%{transform:rotate(6deg)}}
+.swing{transform-box:view-box;transform-origin:76px 186px;animation:swing 1.8s ease-in-out infinite}@keyframes swing{50%{transform:rotate(-8deg)}}
 .pop{animation:pop .55s cubic-bezier(.3,1.6,.5,1)}@keyframes pop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
 .bob{animation:bob 2.6s ease-in-out infinite}@keyframes bob{50%{transform:translateY(-4px)}}
 .tilt{transform-box:view-box;transform-origin:120px 230px;animation:tilt 3s ease-in-out infinite}@keyframes tilt{50%{transform:rotate(-5deg)}}
