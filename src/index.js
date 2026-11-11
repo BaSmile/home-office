@@ -45,6 +45,12 @@ export default {
       const params = { ...Object.fromEntries(url.searchParams), ...body };
       const isOwnTracks = body._type !== undefined;
       if (isOwnTracks && body._type !== 'location') return json([]);
+      // Queued OwnTracks messages carry their own time (tst). Older than what we already have = skip.
+      const at = isOwnTracks && Number(body.tst) ? new Date(Number(body.tst) * 1000) : new Date();
+      if (isOwnTracks) {
+        const prev = JSON.parse((await env.KV.get('status')) || 'null');
+        if (prev?.updatedAt && at <= new Date(prev.updatedAt)) return json([]);
+      }
 
       let record;
       if (['home', 'gym', 'kenitra', 'office'].includes(params.state)) {
@@ -55,7 +61,7 @@ export default {
         let acc = Number(params.acc ?? params.accuracy) || null;
         const MAX_PIN = 150;  // a pin must be precise to the street
         const MAX_FIX = 500;  // coarser readings (e.g. Chrome "approximate" location, ±2 km) are ignored
-        if (isOwnTracks) await env.KV.put('lastfix', JSON.stringify({ ...c, acc, at: new Date().toISOString() }));
+        if (isOwnTracks) await safePut(env, 'lastfix', JSON.stringify({ ...c, acc, at: at.toISOString() }));
 
         const setPlace = params.setplace || ((params.sethome === true || params.sethome === 'true') ? 'home' : null);
         if (setPlace === 'home' || setPlace === 'gym') {
@@ -78,16 +84,16 @@ export default {
         });
         if (acc) record.accM = Math.round(acc);
       }
-      record.updatedAt = new Date().toISOString();
+      record.updatedAt = at.toISOString();
       record.source = isOwnTracks ? 'owntracks' : (params.source || 'api');
-      await env.KV.put('status', JSON.stringify(record));
+      await safePut(env, 'status', JSON.stringify(record));
       const log = JSON.parse((await env.KV.get('log')) || '[]');
       const entry = { at: record.updatedAt, state: record.state, source: record.source, km: record.distanceKm ?? null, acc: record.accM ?? null };
       const prev = log[0];
       // Same place, same source, less than 10 min ago: refresh that line instead of adding a new one.
       if (prev && prev.state === entry.state && prev.source === entry.source && Date.now() - new Date(prev.at) < 10 * 60e3) log[0] = entry;
       else log.unshift(entry);
-      await env.KV.put('log', JSON.stringify(log.slice(0, 15)));
+      await safePut(env, 'log', JSON.stringify(log.slice(0, 15)));
       return isOwnTracks ? json([]) : json(record);
     }
 
@@ -119,6 +125,11 @@ export default {
 async function getPin(env, name) {
   const p = JSON.parse((await env.KV.get(name)) || 'null');
   return p && p.acc != null && p.acc <= 150 ? p : undefined;
+}
+
+// KV allows ~1 write/second per key; a burst of queued OwnTracks messages must not turn into errors and retries.
+async function safePut(env, key, value) {
+  try { await env.KV.put(key, value); } catch (e) { console.log('KV put failed', key, String(e)); }
 }
 
 async function getStatus(env) {
